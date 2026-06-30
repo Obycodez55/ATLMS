@@ -1,0 +1,1221 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+  @keyframes altms-spin { to { transform: rotate(360deg); } }
+  @keyframes altms-toast { from { opacity: 0; transform: translate(-50%, -14px); } to { opacity: 1; transform: translate(-50%, 0); } }
+  @keyframes altms-fade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes altms-bounce { 0%,80%,100% { transform: scale(0.5); opacity:.4; } 40% { transform: scale(1); opacity:1; } }
+  @keyframes altms-ring { to { transform: rotate(360deg); } }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 8px; border: 2px solid #fff; }
+</style>
+</helmet>
+<div style="font-family:Inter,system-ui,sans-serif; height:100vh; width:100%; display:flex; flex-direction:column; background:#F4F6F9; color:#16263B; overflow:hidden;">
+
+  <!-- ===================== TOAST ===================== -->
+  <sc-if value="{{ toast }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed; top:80px; left:50%; z-index:90; transform:translateX(-50%); animation:altms-toast .35s cubic-bezier(.2,.8,.2,1);">
+      <div style="display:flex; align-items:center; gap:12px; background:#fff; border:1px solid #E2E8F0; border-left:4px solid {{ toastColor }}; border-radius:12px; padding:13px 18px 13px 15px; box-shadow:0 12px 32px -8px rgba(16,40,70,.28); min-width:280px; max-width:440px;">
+        <div style="width:24px; height:24px; flex:none; border-radius:50%; background:{{ toastColor }}; display:flex; align-items:center; justify-content:center;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <span style="font-size:14px; font-weight:600; color:#1B2A3D;">{{ toastMsg }}</span>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ===================== AUTH ===================== -->
+  <sc-if value="{{ vAuth }}" hint-placeholder-val="{{ false }}">
+    <div data-screen-label="Auth" style="flex:1; display:flex; min-height:0;">
+      <div style="flex:1; position:relative; background:#1F4E79; overflow:hidden; display:none;"></div>
+      <div style="width:46%; min-width:520px; position:relative; background:#0F2A45; overflow:hidden;">
+        <div style="position:absolute; inset:0; opacity:.5;">
+          <dc-import name="CampusMap" pickup="1" destination="5" tracking="{{ true }}" phase="route" hint-size="100%,100%" style="position:absolute; inset:0;"></dc-import>
+        </div>
+        <div style="position:absolute; inset:0; background:linear-gradient(160deg, rgba(15,42,69,.72), rgba(15,42,69,.92));"></div>
+        <div style="position:absolute; left:56px; top:56px; right:56px; color:#fff; display:flex; align-items:flex-start; justify-content:space-between;">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <div style="width:42px; height:42px; border-radius:11px; background:#fff; display:flex; align-items:center; justify-content:center;">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2C8 2 5 5 5 9c0 5 7 13 7 13s7-8 7-13c0-4-3-7-7-7z" fill="#1F4E79"/><circle cx="12" cy="9" r="2.6" fill="#fff"/></svg>
+            </div>
+            <div>
+              <div style="font-size:20px; font-weight:800; letter-spacing:.5px;">ALTMS</div>
+              <div style="font-size:12px; opacity:.7; margin-top:1px;">University of Ibadan</div>
+            </div>
+          </div>
+          <img src="assets/ui-crest.png" alt="University of Ibadan crest" style="width:60px; height:auto; filter:drop-shadow(0 4px 12px rgba(0,0,0,.35));">
+        </div>
+        <div style="position:absolute; left:56px; bottom:56px; right:56px; color:#fff;">
+          <div style="font-size:30px; font-weight:700; line-height:1.25; max-width:420px;">Campus rides, on demand.</div>
+          <div style="font-size:15px; opacity:.78; margin-top:14px; max-width:380px; line-height:1.6;">Fixed fares, real drivers, live tracking — anywhere across the University of Ibadan campus.</div>
+        </div>
+      </div>
+
+      <div style="flex:1; display:flex; align-items:center; justify-content:center; background:#F4F6F9; padding:40px;">
+        <div style="width:100%; max-width:400px;">
+          <div style="display:flex; align-items:center; gap:12px; margin-bottom:22px;">
+            <img src="assets/ui-crest.png" alt="University of Ibadan crest" style="width:46px; height:auto;">
+            <div style="font-size:12.5px; font-weight:600; color:#64748B; line-height:1.4;">University of Ibadan<br><span style="color:#94A3B8; font-weight:500;">Official campus transport</span></div>
+          </div>
+          <div style="font-size:26px; font-weight:700; color:#16263B;">{{ authTitle }}</div>
+          <div style="font-size:14.5px; color:#64748B; margin-top:8px;">{{ authSub }}</div>
+
+          <div style="font-size:12px; font-weight:600; color:#475569; margin:28px 0 10px;">I am a…</div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+            <button onClick="{{ setAuthPassenger }}" style="{{ authPasStyle }}">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.4" stroke="currentColor" stroke-width="2"/><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              Passenger
+            </button>
+            <button onClick="{{ setAuthDriver }}" style="{{ authDrvStyle }}">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M3 13l2-5a2 2 0 012-1.4h10A2 2 0 0119 8l2 5v5a1 1 0 01-1 1h-1a1 1 0 01-1-1v-1H6v1a1 1 0 01-1 1H4a1 1 0 01-1-1v-5z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="7.5" cy="14.5" r="1.2" fill="currentColor"/><circle cx="16.5" cy="14.5" r="1.2" fill="currentColor"/></svg>
+              Driver
+            </button>
+          </div>
+
+          <div style="margin-top:22px; display:flex; flex-direction:column; gap:14px;">
+            <sc-if value="{{ vSignup }}" hint-placeholder-val="{{ false }}">
+              <div>
+                <div style="font-size:13px; font-weight:600; color:#475569; margin-bottom:7px;">Full name</div>
+                <input value="Adebola Ogunleye" style="width:100%; padding:13px 14px; border:1.5px solid #DCE3EC; border-radius:10px; font:500 15px Inter,sans-serif; color:#16263B; outline:none;">
+              </div>
+            </sc-if>
+            <div>
+              <div style="font-size:13px; font-weight:600; color:#475569; margin-bottom:7px;">Email address</div>
+              <input value="adebola@stu.ui.edu.ng" style="width:100%; padding:13px 14px; border:1.5px solid #DCE3EC; border-radius:10px; font:500 15px Inter,sans-serif; color:#16263B; outline:none;">
+            </div>
+            <div>
+              <div style="font-size:13px; font-weight:600; color:#475569; margin-bottom:7px;">Password</div>
+              <input type="password" value="campus2026" style="width:100%; padding:13px 14px; border:1.5px solid #DCE3EC; border-radius:10px; font:500 15px Inter,sans-serif; color:#16263B; outline:none;">
+            </div>
+          </div>
+
+          <button onClick="{{ doAuth }}" style="margin-top:24px; display:flex; align-items:center; justify-content:center; gap:8px; width:100%; padding:15px; background:#1F4E79; color:#fff; border:none; border-radius:11px; font:600 15px Inter,sans-serif; cursor:pointer;" style-hover="background:#1a4369;">
+            {{ authCta }}
+          </button>
+
+          <div style="text-align:center; margin-top:18px; font-size:14px; color:#64748B;">
+            {{ authSwitchText }}
+            <span onClick="{{ toggleAuth }}" style="color:#1F4E79; font-weight:600; cursor:pointer;">{{ authSwitchLink }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ===================== APP SHELL ===================== -->
+  <sc-if value="{{ vApp }}" hint-placeholder-val="{{ true }}">
+    <!-- Header -->
+    <header style="flex:none; height:64px; background:#fff; border-bottom:1px solid #E6EBF1; display:flex; align-items:center; padding:0 24px; gap:20px; box-shadow:0 1px 0 rgba(16,40,70,.02); z-index:20;">
+      <div style="position:absolute; top:0; left:0; right:0; height:3px; background:{{ roleColor }};"></div>
+      <div style="display:flex; align-items:center; gap:11px;">
+        <div style="width:36px; height:36px; border-radius:10px; background:#1F4E79; display:flex; align-items:center; justify-content:center;">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M12 2C8 2 5 5 5 9c0 5 7 13 7 13s7-8 7-13c0-4-3-7-7-7z" fill="#fff"/><circle cx="12" cy="9" r="2.6" fill="#1F4E79"/></svg>
+        </div>
+        <div>
+          <div style="font-size:17px; font-weight:800; letter-spacing:.4px; color:#16263B; line-height:1;">ALTMS</div>
+          <div style="font-size:10.5px; color:#94A3B8; margin-top:2px;">University of Ibadan</div>
+        </div>
+      </div>
+
+      <div style="flex:1;"></div>
+
+      <!-- role switch -->
+      <div style="display:flex; background:#EEF2F7; border-radius:11px; padding:4px; gap:2px;">
+        <button onClick="{{ goPassenger }}" style="{{ swPasStyle }}">Passenger</button>
+        <button onClick="{{ goDriver }}" style="{{ swDrvStyle }}">Driver</button>
+        <button onClick="{{ goAdmin }}" style="{{ swAdmStyle }}">Admin</button>
+      </div>
+
+      <div style="width:1px; height:28px; background:#E6EBF1;"></div>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <div style="text-align:right;">
+          <div style="font-size:13.5px; font-weight:600; color:#16263B; line-height:1.1;">{{ userName }}</div>
+          <div style="font-size:11px; color:{{ roleColor }}; font-weight:600;">{{ roleLabel }}</div>
+        </div>
+        <div style="width:36px; height:36px; border-radius:50%; background:{{ roleColor }}; color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700;">{{ userInitials }}</div>
+      </div>
+    </header>
+
+    <!-- ===================== PASSENGER ===================== -->
+    <sc-if value="{{ isP }}" hint-placeholder-val="{{ true }}">
+      <main data-screen-label="Passenger" style="flex:1; min-height:0; display:flex;">
+        <!-- LEFT PANEL -->
+        <section style="width:412px; flex:none; background:#fff; border-right:1px solid #E6EBF1; display:flex; flex-direction:column; overflow-y:auto;">
+
+          <!-- request -->
+          <sc-if value="{{ pRequest }}" hint-placeholder-val="{{ true }}">
+            <div style="padding:28px 26px;">
+              <div style="font-size:22px; font-weight:700; color:#16263B;">Where are you going?</div>
+              <div style="font-size:13.5px; color:#64748B; margin-top:6px;">Pick a location on campus — fares are fixed.</div>
+
+              <!-- pickup field -->
+              <div style="margin-top:24px;">
+                <div onClick="{{ openPickup }}" style="{{ pickupFieldStyle }}">
+                  <span style="width:10px; height:10px; border-radius:50%; background:#1F4E79; flex:none;"></span>
+                  <span style="flex:1; font-size:14.5px; font-weight:{{ pickupWeight }}; color:{{ pickupTextColor }};">{{ pickupLabel }}</span>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style="opacity:.4;"><path d="M6 9l6 6 6-6" stroke="#475569" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </div>
+                <sc-if value="{{ pickupOpen }}" hint-placeholder-val="{{ false }}">
+                  <div style="margin-top:8px; border:1px solid #E6EBF1; border-radius:12px; overflow:hidden; box-shadow:0 10px 24px -12px rgba(16,40,70,.2);">
+                    <div style="padding:10px; border-bottom:1px solid #EEF2F7;">
+                      <input value="{{ query }}" onInput="{{ onQuery }}" placeholder="Search campus locations…" style="width:100%; padding:10px 12px; border:1.5px solid #DCE3EC; border-radius:9px; font:500 14px Inter,sans-serif; outline:none;">
+                    </div>
+                    <div style="max-height:260px; overflow-y:auto;">
+                      <sc-for list="{{ selList }}" as="loc" hint-placeholder-count="6">
+                        <div onClick="{{ loc.onSelect }}" style="{{ loc.rowStyle }}">
+                          <span style="width:9px; height:9px; border-radius:50%; background:#1F4E79; flex:none;"></span>
+                          <span style="flex:1; font-size:14px; font-weight:500; color:#1B2A3D;">{{ loc.name }}</span>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </div>
+                </sc-if>
+              </div>
+
+              <!-- destination field -->
+              <div style="margin-top:14px;">
+                <div onClick="{{ openDest }}" style="{{ destFieldStyle }}">
+                  <span style="width:10px; height:10px; border-radius:2px; background:#00A896; flex:none;"></span>
+                  <span style="flex:1; font-size:14.5px; font-weight:{{ destWeight }}; color:{{ destTextColor }};">{{ destLabel }}</span>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style="opacity:.4;"><path d="M6 9l6 6 6-6" stroke="#475569" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </div>
+                <sc-if value="{{ destOpen }}" hint-placeholder-val="{{ false }}">
+                  <div style="margin-top:8px; border:1px solid #E6EBF1; border-radius:12px; overflow:hidden; box-shadow:0 10px 24px -12px rgba(16,40,70,.2);">
+                    <div style="padding:10px; border-bottom:1px solid #EEF2F7;">
+                      <input value="{{ query }}" onInput="{{ onQuery }}" placeholder="Search campus locations…" style="width:100%; padding:10px 12px; border:1.5px solid #DCE3EC; border-radius:9px; font:500 14px Inter,sans-serif; outline:none;">
+                    </div>
+                    <div style="max-height:260px; overflow-y:auto;">
+                      <sc-for list="{{ selList }}" as="loc" hint-placeholder-count="6">
+                        <div onClick="{{ loc.onSelect }}" style="{{ loc.rowStyle }}">
+                          <span style="width:9px; height:9px; border-radius:2px; background:#00A896; flex:none;"></span>
+                          <span style="flex:1; font-size:14px; font-weight:500; color:#1B2A3D;">{{ loc.name }}</span>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </div>
+                </sc-if>
+              </div>
+
+              <!-- fare -->
+              <sc-if value="{{ canRequest }}" hint-placeholder-val="{{ false }}">
+                <div style="margin-top:24px; background:#F7F9FC; border:1px solid #E6EBF1; border-radius:14px; padding:18px 20px;">
+                  <div style="display:flex; align-items:flex-end; justify-content:space-between;">
+                    <div>
+                      <div style="font-size:11px; font-weight:700; letter-spacing:.6px; color:#94A3B8; text-transform:uppercase;">Fixed fare</div>
+                      <div style="font-size:34px; font-weight:800; color:#1F4E79; margin-top:2px; font-variant-numeric:tabular-nums;">{{ fareStr }}</div>
+                    </div>
+                    <div style="text-align:right; font-size:13px; color:#64748B; line-height:1.6; white-space:nowrap;">
+                      <div><span style="font-weight:700; color:#16263B;">~{{ etaMins }}</span> min</div>
+                      <div><span style="font-weight:700; color:#16263B;">{{ distKm }}</span> km</div>
+                    </div>
+                  </div>
+                  <div style="margin-top:14px; padding-top:14px; border-top:1px dashed #DCE3EC; display:flex; align-items:center; gap:8px; font-size:12.5px; color:#0A7D70; font-weight:600;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 2l2.5 5 5.5.8-4 3.9.9 5.5L12 20.5 7.1 23l.9-5.5-4-3.9 5.5-.8z" fill="none"/><path d="M9 12l2 2 4-4" stroke="#0A7D70" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="9" stroke="#0A7D70" stroke-width="2"/></svg>
+                    No surge pricing • Pay cash or transfer
+                  </div>
+                </div>
+              </sc-if>
+
+              <button onClick="{{ requestRide }}" disabled="{{ requestDisabled }}" style="{{ requestBtnStyle }}">
+                {{ requestBtnLabel }}
+              </button>
+            </div>
+          </sc-if>
+
+          <!-- waiting -->
+          <sc-if value="{{ pWaiting }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:28px 26px; flex:1; display:flex; flex-direction:column;">
+              <div style="display:flex; align-items:center; gap:14px;">
+                <div style="position:relative; width:46px; height:46px; flex:none;">
+                  <div style="position:absolute; inset:0; border:3px solid #E6F6F4; border-top-color:#00A896; border-radius:50%; animation:altms-spin 1s linear infinite;"></div>
+                </div>
+                <div>
+                  <div style="font-size:19px; font-weight:700; color:#16263B;">Looking for a driver…</div>
+                  <div style="font-size:13px; color:#64748B; margin-top:3px;">Matching you with the nearest campus driver</div>
+                </div>
+              </div>
+              <div style="margin-top:24px; background:#F7F9FC; border:1px solid #E6EBF1; border-radius:14px; padding:16px 18px;">
+                <div style="display:flex; align-items:center; gap:10px; font-size:14px;">
+                  <span style="width:9px; height:9px; border-radius:50%; background:#1F4E79;"></span>
+                  <span style="font-weight:600; color:#1B2A3D;">{{ pickupShort }}</span>
+                </div>
+                <div style="margin:6px 0 6px 4px; width:1px; height:16px; background:#CBD5E1;"></div>
+                <div style="display:flex; align-items:center; gap:10px; font-size:14px;">
+                  <span style="width:9px; height:9px; border-radius:2px; background:#00A896;"></span>
+                  <span style="font-weight:600; color:#1B2A3D;">{{ destShort }}</span>
+                </div>
+                <div style="margin-top:14px; padding-top:14px; border-top:1px solid #EEF2F7; display:flex; justify-content:space-between; font-size:14px;">
+                  <span style="color:#64748B;">Fixed fare</span>
+                  <span style="font-weight:700; color:#1F4E79; font-variant-numeric:tabular-nums;">{{ fareStr }}</span>
+                </div>
+              </div>
+              <div style="flex:1;"></div>
+              <button onClick="{{ cancelRide }}" style="display:flex; align-items:center; justify-content:center; gap:8px; width:100%; padding:14px; background:#fff; color:#DC2626; border:1.5px solid #F0C9C9; border-radius:11px; font:600 15px Inter,sans-serif; cursor:pointer;" style-hover="background:#FEF2F2;">Cancel request</button>
+            </div>
+          </sc-if>
+
+          <!-- matched + progress share driver card -->
+          <sc-if value="{{ pTrip }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:24px 26px; flex:1; display:flex; flex-direction:column;">
+              <div style="{{ pBannerStyle }}">
+                <span style="width:8px; height:8px; border-radius:50%; background:{{ pBannerDot }}; box-shadow:0 0 0 4px {{ pBannerHalo }};"></span>
+                {{ pBannerText }}
+              </div>
+
+              <div style="margin-top:18px; border:1px solid #E6EBF1; border-radius:16px; padding:18px; box-shadow:0 1px 2px rgba(16,40,70,.04);">
+                <div style="display:flex; align-items:center; gap:14px;">
+                  <div style="width:54px; height:54px; border-radius:50%; background:#1F4E79; color:#fff; display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:700; flex:none;">TA</div>
+                  <div style="flex:1;">
+                    <div style="font-size:16.5px; font-weight:700; color:#16263B;">Tunde Adeyemi</div>
+                    <div style="display:flex; align-items:center; gap:6px; margin-top:3px; font-size:13px; color:#64748B;">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="#F5A623"><path d="M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 18.6 5.9 20.6l1.4-6.8L2.2 9.1l6.9-.8z"/></svg>
+                      <span style="font-weight:600; color:#1B2A3D;">4.9</span>
+                      <span>•</span>
+                      <span>Keke NAPEP (Tricycle)</span>
+                    </div>
+                  </div>
+                </div>
+                <div style="margin-top:16px; display:flex; gap:10px;">
+                  <div style="flex:1; background:#F7F9FC; border:1px solid #EEF2F7; border-radius:10px; padding:10px 12px;">
+                    <div style="font-size:11px; color:#94A3B8; font-weight:600;">PLATE</div>
+                    <div style="font-size:14px; font-weight:700; color:#16263B; margin-top:2px; letter-spacing:.5px;">OYO-234-KJA</div>
+                  </div>
+                  <div style="flex:1; background:#F7F9FC; border:1px solid #EEF2F7; border-radius:10px; padding:10px 12px;">
+                    <div style="font-size:11px; color:#94A3B8; font-weight:600;">{{ pEtaLabel }}</div>
+                    <div style="font-size:14px; font-weight:700; color:#00A896; margin-top:2px;">{{ pEtaValue }}</div>
+                  </div>
+                </div>
+              </div>
+
+              <div style="margin-top:18px; background:#F7F9FC; border:1px solid #E6EBF1; border-radius:14px; padding:16px 18px;">
+                <div style="display:flex; align-items:center; gap:10px; font-size:14px;">
+                  <span style="width:9px; height:9px; border-radius:50%; background:#1F4E79;"></span>
+                  <span style="font-weight:600; color:#1B2A3D;">{{ pickupShort }}</span>
+                </div>
+                <div style="margin:6px 0 6px 4px; width:1px; height:16px; background:#CBD5E1;"></div>
+                <div style="display:flex; align-items:center; gap:10px; font-size:14px;">
+                  <span style="width:9px; height:9px; border-radius:2px; background:#00A896;"></span>
+                  <span style="font-weight:600; color:#1B2A3D;">{{ destShort }}</span>
+                </div>
+                <div style="margin-top:14px; padding-top:14px; border-top:1px solid #EEF2F7; display:flex; justify-content:space-between; font-size:14px;">
+                  <span style="color:#64748B;">Fixed fare</span>
+                  <span style="font-weight:700; color:#1F4E79; font-variant-numeric:tabular-nums;">{{ fareStr }}</span>
+                </div>
+              </div>
+
+              <div style="flex:1;"></div>
+              <div style="display:flex; gap:10px;">
+                <button style="flex:1; display:flex; align-items:center; justify-content:center; gap:8px; padding:13px; background:#fff; color:#1F4E79; border:1.5px solid #D6DEE8; border-radius:11px; font:600 14.5px Inter,sans-serif; cursor:pointer;" style-hover="border-color:#1F4E79;">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6.5 4h3l1.5 4-2 1.5a12 12 0 005.5 5.5l1.5-2 4 1.5v3a2 2 0 01-2 2A16 16 0 014.5 6a2 2 0 012-2z" stroke="#1F4E79" stroke-width="2" stroke-linejoin="round"/></svg>
+                  Call driver
+                </button>
+                <button onClick="{{ cancelRide }}" style="flex:1; padding:13px; background:#fff; color:#DC2626; border:1.5px solid #F0C9C9; border-radius:11px; font:600 14.5px Inter,sans-serif; cursor:pointer;" style-hover="background:#FEF2F2;">Cancel</button>
+              </div>
+            </div>
+          </sc-if>
+        </section>
+
+        <!-- MAP (passenger trip screens) -->
+        <sc-if value="{{ pMap }}" hint-placeholder-val="{{ true }}">
+          <div style="flex:1; position:relative; min-width:0;">
+            <dc-import name="CampusMap" pickup="{{ mapPickup }}" destination="{{ mapDest }}" tracking="{{ mapTracking }}" scanning="{{ mapScanning }}" phase="{{ mapPhase }}" hint-size="100%,100%" style="position:absolute; inset:0;"></dc-import>
+          </div>
+        </sc-if>
+
+        <!-- CENTERED CARDS: complete / rating / done / nodrivers -->
+        <sc-if value="{{ pCenter }}" hint-placeholder-val="{{ false }}">
+          <div style="flex:1; position:relative; min-width:0; display:flex; align-items:center; justify-content:center; padding:40px; background:#F4F6F9;">
+
+            <!-- complete -->
+            <sc-if value="{{ pComplete }}" hint-placeholder-val="{{ false }}">
+              <div style="width:440px; background:#fff; border:1px solid #E6EBF1; border-radius:18px; box-shadow:0 18px 50px -22px rgba(16,40,70,.3); overflow:hidden; animation:altms-fade .4s ease;">
+                <div style="padding:26px 28px; border-bottom:1px solid #EEF2F7;">
+                  <div style="display:flex; align-items:center; gap:12px;">
+                    <div style="width:42px; height:42px; border-radius:50%; background:#E6F6F4; display:flex; align-items:center; justify-content:center;">
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="#00A896" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </div>
+                    <div>
+                      <div style="font-size:19px; font-weight:700; color:#16263B;">You've arrived</div>
+                      <div style="font-size:13px; color:#64748B; margin-top:2px;">{{ tripDateStr }}</div>
+                    </div>
+                  </div>
+                </div>
+                <div style="padding:24px 28px;">
+                  <div style="display:flex; align-items:center; gap:10px; font-size:14.5px;">
+                    <span style="width:9px; height:9px; border-radius:50%; background:#1F4E79;"></span>
+                    <span style="font-weight:600; color:#1B2A3D;">{{ pickupShort }}</span>
+                  </div>
+                  <div style="margin:6px 0 6px 4px; width:1px; height:16px; background:#CBD5E1;"></div>
+                  <div style="display:flex; align-items:center; gap:10px; font-size:14.5px;">
+                    <span style="width:9px; height:9px; border-radius:2px; background:#00A896;"></span>
+                    <span style="font-weight:600; color:#1B2A3D;">{{ destShort }}</span>
+                  </div>
+                  <div style="margin-top:20px; padding:18px 20px; background:#F7F9FC; border:1px solid #E6EBF1; border-radius:14px; display:flex; align-items:center; justify-content:space-between;">
+                    <div>
+                      <div style="font-size:12px; color:#94A3B8; font-weight:700; letter-spacing:.5px;">AMOUNT DUE</div>
+                      <div style="font-size:13px; color:#64748B; margin-top:4px;">Pay Tunde directly</div>
+                    </div>
+                    <div style="font-size:30px; font-weight:800; color:#1F4E79; font-variant-numeric:tabular-nums;">{{ fareStr }}</div>
+                  </div>
+                  <div style="margin-top:16px; font-size:12.5px; font-weight:600; color:#475569;">Confirm how you paid</div>
+                  <div style="margin-top:10px; display:flex; gap:10px;">
+                    <button onClick="{{ payCash }}" style="flex:1; display:flex; align-items:center; justify-content:center; gap:8px; padding:14px; background:#1F4E79; color:#fff; border:none; border-radius:11px; font:600 14.5px Inter,sans-serif; cursor:pointer;" style-hover="background:#1a4369;">
+                      Paid by cash
+                    </button>
+                    <button onClick="{{ payTransfer }}" style="flex:1; display:flex; align-items:center; justify-content:center; gap:8px; padding:14px; background:#fff; color:#1F4E79; border:1.5px solid #D6DEE8; border-radius:11px; font:600 14.5px Inter,sans-serif; cursor:pointer;" style-hover="border-color:#1F4E79;">
+                      Paid by transfer
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </sc-if>
+
+            <!-- rating -->
+            <sc-if value="{{ pRating }}" hint-placeholder-val="{{ false }}">
+              <div style="width:430px; background:#fff; border:1px solid #E6EBF1; border-radius:18px; box-shadow:0 18px 50px -22px rgba(16,40,70,.3); padding:30px 30px 26px; text-align:center; animation:altms-fade .4s ease;">
+                <div style="width:60px; height:60px; border-radius:50%; background:#1F4E79; color:#fff; display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:700; margin:0 auto;">TA</div>
+                <div style="font-size:20px; font-weight:700; color:#16263B; margin-top:16px;">Rate your trip with Tunde</div>
+                <div style="font-size:13.5px; color:#64748B; margin-top:6px;">Your feedback keeps campus rides safe.</div>
+                <div style="display:flex; justify-content:center; gap:8px; margin-top:22px;">
+                  <sc-for list="{{ stars }}" as="s" hint-placeholder-count="5">
+                    <button onClick="{{ s.onClick }}" onMouseEnter="{{ s.onEnter }}" onMouseLeave="{{ onStarLeave }}" style="background:none; border:none; cursor:pointer; padding:2px;">
+                      <svg width="40" height="40" viewBox="0 0 24 24" fill="{{ s.fill }}"><path d="M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 18.6 5.9 20.6l1.4-6.8L2.2 9.1l6.9-.8z"/></svg>
+                    </button>
+                  </sc-for>
+                </div>
+                <div style="font-size:13px; font-weight:600; color:#00A896; height:18px; margin-top:6px;">{{ ratingWord }}</div>
+                <textarea value="{{ comment }}" onInput="{{ onComment }}" placeholder="Add a comment (optional)" style="margin-top:16px; width:100%; min-height:80px; resize:none; padding:13px 14px; border:1.5px solid #DCE3EC; border-radius:11px; font:500 14px Inter,sans-serif; color:#16263B; outline:none;"></textarea>
+                <button onClick="{{ submitRating }}" disabled="{{ ratingDisabled }}" style="{{ submitRatingStyle }}">Submit rating</button>
+              </div>
+            </sc-if>
+
+            <!-- done -->
+            <sc-if value="{{ pDone }}" hint-placeholder-val="{{ false }}">
+              <div style="width:420px; background:#fff; border:1px solid #E6EBF1; border-radius:18px; box-shadow:0 18px 50px -22px rgba(16,40,70,.3); padding:34px 30px; text-align:center; animation:altms-fade .4s ease;">
+                <div style="width:64px; height:64px; border-radius:50%; background:#E6F6F4; display:flex; align-items:center; justify-content:center; margin:0 auto;">
+                  <svg width="30" height="30" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="#00A896" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </div>
+                <div style="font-size:21px; font-weight:700; color:#16263B; margin-top:18px;">Thanks for riding with ALTMS</div>
+                <div style="font-size:14px; color:#64748B; margin-top:8px; line-height:1.6;">Your trip is complete and your rating has been saved. Safe travels around campus.</div>
+                <button onClick="{{ resetPassenger }}" style="margin-top:24px; width:100%; padding:15px; background:#1F4E79; color:#fff; border:none; border-radius:11px; font:600 15px Inter,sans-serif; cursor:pointer;" style-hover="background:#1a4369;">Book another ride</button>
+              </div>
+            </sc-if>
+
+            <!-- no drivers -->
+            <sc-if value="{{ pNoDrivers }}" hint-placeholder-val="{{ false }}">
+              <div style="width:420px; background:#fff; border:1px solid #E6EBF1; border-radius:18px; box-shadow:0 18px 50px -22px rgba(16,40,70,.3); padding:34px 30px; text-align:center; animation:altms-fade .4s ease;">
+                <div style="width:64px; height:64px; border-radius:50%; background:#FEF3E2; display:flex; align-items:center; justify-content:center; margin:0 auto;">
+                  <svg width="30" height="30" viewBox="0 0 24 24" fill="none"><path d="M12 8v5" stroke="#B26B00" stroke-width="2.4" stroke-linecap="round"/><circle cx="12" cy="16.5" r="1.4" fill="#B26B00"/><circle cx="12" cy="12" r="9" stroke="#E0A640" stroke-width="2"/></svg>
+                </div>
+                <div style="font-size:20px; font-weight:700; color:#16263B; margin-top:18px;">No drivers available right now</div>
+                <div style="font-size:14px; color:#64748B; margin-top:8px; line-height:1.6;">All campus drivers are currently busy. Try again in a moment — most rides are matched within a minute.</div>
+                <button onClick="{{ resetPassenger }}" style="margin-top:24px; width:100%; padding:15px; background:#1F4E79; color:#fff; border:none; border-radius:11px; font:600 15px Inter,sans-serif; cursor:pointer;" style-hover="background:#1a4369;">Try again</button>
+              </div>
+            </sc-if>
+
+          </div>
+        </sc-if>
+      </main>
+    </sc-if>
+
+    <!-- ===================== DRIVER ===================== -->
+    <sc-if value="{{ isD }}" hint-placeholder-val="{{ false }}">
+      <main data-screen-label="Driver" style="flex:1; min-height:0; display:flex;">
+
+        <!-- history is full width -->
+        <sc-if value="{{ dHistory }}" hint-placeholder-val="{{ false }}">
+          <div style="flex:1; overflow-y:auto; padding:32px 40px; background:#F4F6F9;">
+            <div style="max-width:820px; margin:0 auto;">
+              <div style="font-size:24px; font-weight:700; color:#16263B;">Trip history</div>
+              <div style="font-size:14px; color:#64748B; margin-top:6px;">Your completed rides on campus.</div>
+              <div style="margin-top:22px; background:#fff; border:1px solid #E6EBF1; border-radius:16px; overflow:hidden;">
+                <div style="display:grid; grid-template-columns:160px 1fr 90px 90px; padding:14px 22px; background:#F7F9FC; border-bottom:1px solid #EEF2F7; font-size:11.5px; font-weight:700; letter-spacing:.5px; color:#94A3B8; text-transform:uppercase;">
+                  <div>When</div><div>Route</div><div style="text-align:right;">Fare</div><div style="text-align:right;">Rating</div>
+                </div>
+                <sc-for list="{{ history }}" as="h" hint-placeholder-count="4">
+                  <div style="display:grid; grid-template-columns:160px 1fr 90px 90px; padding:16px 22px; border-bottom:1px solid #F1F4F8; align-items:center;">
+                    <div style="font-size:13.5px; color:#64748B;">{{ h.date }}</div>
+                    <div style="font-size:14px; font-weight:600; color:#1B2A3D;">{{ h.route }}</div>
+                    <div style="font-size:14px; font-weight:700; color:#1F4E79; text-align:right; font-variant-numeric:tabular-nums;">{{ h.fareStr }}</div>
+                    <div style="font-size:13.5px; color:#475569; text-align:right;">{{ h.ratingStr }}</div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- map-based driver screens -->
+        <sc-if value="{{ dMapView }}" hint-placeholder-val="{{ true }}">
+          <section style="width:412px; flex:none; background:#fff; border-right:1px solid #E6EBF1; display:flex; flex-direction:column; overflow-y:auto;">
+
+            <!-- home: online/offline toggle -->
+            <sc-if value="{{ dHome }}" hint-placeholder-val="{{ true }}">
+              <div style="padding:28px 26px; flex:1; display:flex; flex-direction:column;">
+                <div style="font-size:22px; font-weight:700; color:#16263B;">{{ dHomeTitle }}</div>
+                <div style="font-size:13.5px; color:#64748B; margin-top:6px;">{{ dHomeSub }}</div>
+
+                <div onClick="{{ toggleOnline }}" style="{{ toggleCardStyle }}">
+                  <div style="display:flex; align-items:center; gap:12px;">
+                    <span style="width:11px; height:11px; border-radius:50%; background:{{ toggleDot }}; box-shadow:0 0 0 4px {{ toggleHalo }};"></span>
+                    <span style="font-size:17px; font-weight:700; color:{{ toggleTextColor }};">{{ toggleLabel }}</span>
+                  </div>
+                  <div style="{{ toggleSwitchStyle }}">
+                    <div style="{{ toggleKnobStyle }}"></div>
+                  </div>
+                </div>
+
+                <div style="margin-top:22px; font-size:12px; font-weight:700; letter-spacing:.5px; color:#94A3B8; text-transform:uppercase;">Today</div>
+                <div style="margin-top:12px; display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                  <div style="background:#F7F9FC; border:1px solid #EEF2F7; border-radius:13px; padding:16px;">
+                    <div style="font-size:24px; font-weight:800; color:#16263B; font-variant-numeric:tabular-nums;">6</div>
+                    <div style="font-size:12.5px; color:#64748B; margin-top:2px;">Trips completed</div>
+                  </div>
+                  <div style="background:#F7F9FC; border:1px solid #EEF2F7; border-radius:13px; padding:16px;">
+                    <div style="font-size:24px; font-weight:800; color:#1F4E79; font-variant-numeric:tabular-nums;">₦1,450</div>
+                    <div style="font-size:12.5px; color:#64748B; margin-top:2px;">Earnings</div>
+                  </div>
+                  <div style="background:#F7F9FC; border:1px solid #EEF2F7; border-radius:13px; padding:16px;">
+                    <div style="font-size:24px; font-weight:800; color:#16263B;">2h 15m</div>
+                    <div style="font-size:12.5px; color:#64748B; margin-top:2px;">Online time</div>
+                  </div>
+                  <div style="background:#F7F9FC; border:1px solid #EEF2F7; border-radius:13px; padding:16px;">
+                    <div style="display:flex; align-items:center; gap:5px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="#F5A623"><path d="M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 18.6 5.9 20.6l1.4-6.8L2.2 9.1l6.9-.8z"/></svg><span style="font-size:24px; font-weight:800; color:#16263B;">4.9</span></div>
+                    <div style="font-size:12.5px; color:#64748B; margin-top:2px;">Driver rating</div>
+                  </div>
+                </div>
+
+                <sc-if value="{{ online }}" hint-placeholder-val="{{ false }}">
+                  <div style="margin-top:22px; display:flex; align-items:center; gap:10px; padding:14px 16px; background:#E6F6F4; border:1px solid #B7E6DF; border-radius:12px; color:#0A7D70; font-size:13.5px; font-weight:600;">
+                    <div style="position:relative; width:16px; height:16px;"><div style="position:absolute; inset:0; border:2px solid #B7E6DF; border-top-color:#0A7D70; border-radius:50%; animation:altms-spin 1s linear infinite;"></div></div>
+                    Waiting for ride requests nearby…
+                  </div>
+                </sc-if>
+              </div>
+            </sc-if>
+
+            <!-- incoming request -->
+            <sc-if value="{{ dIncoming }}" hint-placeholder-val="{{ false }}">
+              <div style="padding:24px 26px; flex:1; display:flex; flex-direction:column;">
+                <div style="display:flex; align-items:center; justify-content:space-between;">
+                  <div style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:700; color:#00A896; text-transform:uppercase; letter-spacing:.5px;">
+                    <span style="width:8px; height:8px; border-radius:50%; background:#00A896; box-shadow:0 0 0 4px #D6F2ED;"></span>
+                    New request
+                  </div>
+                  <div style="width:38px; height:38px; border-radius:50%; border:3px solid #E6F6F4; border-top-color:#00A896; animation:altms-spin 4s linear infinite;"></div>
+                </div>
+
+                <div style="margin-top:18px; border:1px solid #E6EBF1; border-radius:16px; padding:18px;">
+                  <div style="display:flex; align-items:center; gap:12px;">
+                    <div style="width:46px; height:46px; border-radius:50%; background:#EEF2F7; color:#1F4E79; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:700; flex:none;">AO</div>
+                    <div style="flex:1;">
+                      <div style="font-size:15.5px; font-weight:700; color:#16263B;">Amaka Obi</div>
+                      <div style="display:flex; align-items:center; gap:5px; font-size:12.5px; color:#64748B; margin-top:2px;">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="#F5A623"><path d="M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 18.6 5.9 20.6l1.4-6.8L2.2 9.1l6.9-.8z"/></svg>4.8 • Passenger
+                      </div>
+                    </div>
+                    <div style="text-align:right;">
+                      <div style="font-size:22px; font-weight:800; color:#1F4E79; font-variant-numeric:tabular-nums;">{{ jobFareStr }}</div>
+                      <div style="font-size:11.5px; color:#94A3B8;">fixed fare</div>
+                    </div>
+                  </div>
+                  <div style="margin-top:16px; padding-top:16px; border-top:1px solid #EEF2F7;">
+                    <div style="display:flex; align-items:center; gap:10px; font-size:14px;">
+                      <span style="width:9px; height:9px; border-radius:50%; background:#1F4E79;"></span>
+                      <span style="font-weight:600; color:#1B2A3D;">{{ jobPickup }}</span>
+                    </div>
+                    <div style="margin:6px 0 6px 4px; width:1px; height:16px; background:#CBD5E1;"></div>
+                    <div style="display:flex; align-items:center; gap:10px; font-size:14px;">
+                      <span style="width:9px; height:9px; border-radius:2px; background:#00A896;"></span>
+                      <span style="font-weight:600; color:#1B2A3D;">{{ jobDest }}</span>
+                    </div>
+                  </div>
+                  <div style="margin-top:14px; display:flex; align-items:center; gap:6px; font-size:13px; color:#64748B;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#94A3B8" stroke-width="2"/><path d="M12 7v5l3 2" stroke="#94A3B8" stroke-width="2" stroke-linecap="round"/></svg>
+                    Pickup is 450 m away • ~2 min
+                  </div>
+                </div>
+
+                <div style="flex:1;"></div>
+                <div style="display:flex; gap:12px;">
+                  <button onClick="{{ declineReq }}" style="flex:1; padding:15px; background:#fff; color:#DC2626; border:1.5px solid #F0C9C9; border-radius:11px; font:600 15px Inter,sans-serif; cursor:pointer;" style-hover="background:#FEF2F2;">Decline</button>
+                  <button onClick="{{ acceptReq }}" style="flex:2; padding:15px; background:#00A896; color:#fff; border:none; border-radius:11px; font:600 15px Inter,sans-serif; cursor:pointer;" style-hover="background:#00917f;">Accept ride</button>
+                </div>
+              </div>
+            </sc-if>
+
+            <!-- active: topickup / trip -->
+            <sc-if value="{{ dActive }}" hint-placeholder-val="{{ false }}">
+              <div style="padding:24px 26px; flex:1; display:flex; flex-direction:column;">
+                <div style="{{ dBannerStyle }}">
+                  <span style="width:8px; height:8px; border-radius:50%; background:{{ dBannerDot }}; box-shadow:0 0 0 4px {{ dBannerHalo }};"></span>
+                  {{ dBannerText }}
+                </div>
+
+                <div style="margin-top:18px; border:1px solid #E6EBF1; border-radius:16px; padding:18px;">
+                  <div style="display:flex; align-items:center; gap:12px;">
+                    <div style="width:46px; height:46px; border-radius:50%; background:#EEF2F7; color:#1F4E79; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:700; flex:none;">AO</div>
+                    <div style="flex:1;">
+                      <div style="font-size:15.5px; font-weight:700; color:#16263B;">Amaka Obi</div>
+                      <div style="font-size:12.5px; color:#64748B; margin-top:2px;">Passenger • 4.8 ★</div>
+                    </div>
+                    <button style="width:42px; height:42px; border-radius:50%; background:#fff; border:1.5px solid #D6DEE8; display:flex; align-items:center; justify-content:center; cursor:pointer;" style-hover="border-color:#1F4E79;">
+                      <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M6.5 4h3l1.5 4-2 1.5a12 12 0 005.5 5.5l1.5-2 4 1.5v3a2 2 0 01-2 2A16 16 0 014.5 6a2 2 0 012-2z" stroke="#1F4E79" stroke-width="2" stroke-linejoin="round"/></svg>
+                    </button>
+                  </div>
+                </div>
+
+                <div style="margin-top:16px; background:#F7F9FC; border:1px solid #E6EBF1; border-radius:14px; padding:16px 18px;">
+                  <div style="display:flex; align-items:center; gap:10px; font-size:14px;">
+                    <span style="width:9px; height:9px; border-radius:50%; background:#1F4E79;"></span>
+                    <span style="font-weight:600; color:#1B2A3D;">{{ jobPickup }}</span>
+                  </div>
+                  <div style="margin:6px 0 6px 4px; width:1px; height:16px; background:#CBD5E1;"></div>
+                  <div style="display:flex; align-items:center; gap:10px; font-size:14px;">
+                    <span style="width:9px; height:9px; border-radius:2px; background:#00A896;"></span>
+                    <span style="font-weight:600; color:#1B2A3D;">{{ jobDest }}</span>
+                  </div>
+                  <div style="margin-top:14px; padding-top:14px; border-top:1px solid #EEF2F7; display:flex; justify-content:space-between; font-size:14px;">
+                    <span style="color:#64748B;">Collect on arrival</span>
+                    <span style="font-weight:700; color:#1F4E79; font-variant-numeric:tabular-nums;">{{ jobFareStr }}</span>
+                  </div>
+                </div>
+
+                <div style="flex:1;"></div>
+                <button onClick="{{ dPrimaryAction }}" style="{{ dPrimaryStyle }}">{{ dPrimaryLabel }}</button>
+              </div>
+            </sc-if>
+
+          </section>
+
+          <div style="flex:1; position:relative; min-width:0;">
+            <dc-import name="CampusMap" pickup="{{ dMapPickup }}" destination="{{ dMapDest }}" tracking="{{ dMapTracking }}" phase="{{ dMapPhase }}" hint-size="100%,100%" style="position:absolute; inset:0;"></dc-import>
+          </div>
+        </sc-if>
+
+        <!-- driver complete -->
+        <sc-if value="{{ dComplete }}" hint-placeholder-val="{{ false }}">
+          <div style="flex:1; display:flex; align-items:center; justify-content:center; padding:40px; background:#F4F6F9;">
+            <div style="width:430px; background:#fff; border:1px solid #E6EBF1; border-radius:18px; box-shadow:0 18px 50px -22px rgba(16,40,70,.3); padding:30px; text-align:center; animation:altms-fade .4s ease;">
+              <div style="width:60px; height:60px; border-radius:50%; background:#E6F6F4; display:flex; align-items:center; justify-content:center; margin:0 auto;">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="#00A896" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+              <div style="font-size:20px; font-weight:700; color:#16263B; margin-top:16px;">Trip complete</div>
+              <div style="font-size:13.5px; color:#64748B; margin-top:6px;">{{ jobPickup }} → {{ jobDest }}</div>
+              <div style="margin-top:20px; padding:18px 20px; background:#F7F9FC; border:1px solid #E6EBF1; border-radius:14px; display:flex; align-items:center; justify-content:space-between;">
+                <div style="text-align:left;">
+                  <div style="font-size:12px; color:#94A3B8; font-weight:700; letter-spacing:.5px;">COLLECT FROM AMAKA</div>
+                  <div style="font-size:13px; color:#64748B; margin-top:4px;">Cash or transfer</div>
+                </div>
+                <div style="font-size:30px; font-weight:800; color:#1F4E79; font-variant-numeric:tabular-nums;">{{ jobFareStr }}</div>
+              </div>
+              <button onClick="{{ confirmPayment }}" style="margin-top:18px; width:100%; padding:15px; background:#00A896; color:#fff; border:none; border-radius:11px; font:600 15px Inter,sans-serif; cursor:pointer;" style-hover="background:#00917f;">Confirm payment received</button>
+            </div>
+          </div>
+        </sc-if>
+      </main>
+    </sc-if>
+
+    <!-- ===================== ADMIN ===================== -->
+    <sc-if value="{{ isAdmin }}" hint-placeholder-val="{{ false }}">
+      <main data-screen-label="Admin" style="flex:1; min-height:0; overflow-y:auto; background:#F4F6F9; padding:32px 40px;">
+        <div style="max-width:1000px; margin:0 auto;">
+          <div style="font-size:24px; font-weight:700; color:#16263B;">Admin</div>
+          <div style="font-size:14px; color:#64748B; margin-top:6px;">Read-only overview of trips, drivers, locations and fares.</div>
+
+          <div style="margin-top:22px; display:flex; gap:4px; background:#EEF2F7; padding:4px; border-radius:11px; width:fit-content;">
+            <button onClick="{{ adminTrips }}" style="{{ adminTab0Style }}">Trips</button>
+            <button onClick="{{ adminDrivers }}" style="{{ adminTab1Style }}">Drivers</button>
+            <button onClick="{{ adminFares }}" style="{{ adminTab2Style }}">Locations &amp; fares</button>
+          </div>
+
+          <!-- trips -->
+          <sc-if value="{{ adminShowTrips }}" hint-placeholder-val="{{ true }}">
+            <div style="margin-top:20px; display:grid; grid-template-columns:repeat(4,1fr); gap:14px;">
+              <sc-for list="{{ adminKpis }}" as="k" hint-placeholder-count="4">
+                <div style="background:#fff; border:1px solid #E6EBF1; border-radius:14px; padding:18px 20px;">
+                  <div style="font-size:11.5px; font-weight:700; letter-spacing:.5px; color:#94A3B8; text-transform:uppercase;">{{ k.label }}</div>
+                  <div style="font-size:26px; font-weight:800; color:{{ k.color }}; margin-top:6px; font-variant-numeric:tabular-nums;">{{ k.value }}</div>
+                  <div style="font-size:12.5px; color:#64748B; margin-top:3px;">{{ k.sub }}</div>
+                </div>
+              </sc-for>
+            </div>
+
+            <div style="margin-top:18px; display:flex; align-items:center; gap:8px;">
+              <span style="font-size:12px; font-weight:600; color:#64748B; margin-right:2px;">Filter</span>
+              <sc-for list="{{ tripFilters }}" as="f" hint-placeholder-count="4">
+                <button onClick="{{ f.onClick }}" style="{{ f.style }}">{{ f.label }}</button>
+              </sc-for>
+            </div>
+
+            <div style="margin-top:14px; background:#fff; border:1px solid #E6EBF1; border-radius:16px; overflow:hidden;">
+              <div style="display:grid; grid-template-columns:84px 124px 1.1fr 1.1fr 1.4fr 92px 96px 104px; gap:14px; padding:14px 22px; background:#F7F9FC; border-bottom:1px solid #EEF2F7; font-size:11px; font-weight:700; letter-spacing:.4px; color:#94A3B8; text-transform:uppercase;">
+                <div>Trip</div><div>When</div><div>Passenger</div><div>Driver</div><div>Route</div><div style="text-align:right;">Fare</div><div>Payment</div><div style="text-align:right;">Status</div>
+              </div>
+              <div style="max-height:440px; overflow-y:auto;">
+                <sc-for list="{{ adminTripsList }}" as="t" hint-placeholder-count="8">
+                  <div style="display:grid; grid-template-columns:84px 124px 1.1fr 1.1fr 1.4fr 92px 96px 104px; gap:14px; padding:14px 22px; border-bottom:1px solid #F1F4F8; align-items:center;">
+                    <div style="font-size:12.5px; font-weight:600; color:#1F4E79; font-variant-numeric:tabular-nums;">{{ t.id }}</div>
+                    <div style="font-size:12.5px; color:#64748B;">{{ t.when }}</div>
+                    <div style="font-size:13.5px; font-weight:600; color:#16263B;">{{ t.passenger }}</div>
+                    <div style="font-size:13.5px; color:#475569;">{{ t.driver }}</div>
+                    <div style="font-size:13px; color:#475569;">{{ t.route }}</div>
+                    <div style="font-size:13.5px; font-weight:700; color:#16263B; text-align:right; font-variant-numeric:tabular-nums;">{{ t.fareStr }}</div>
+                    <div style="font-size:12.5px; color:#475569;">{{ t.payment }}</div>
+                    <div style="text-align:right;"><span style="{{ t.statusStyle }}">{{ t.statusLabel }}</span></div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- drivers table -->
+          <sc-if value="{{ adminShowDrivers }}" hint-placeholder-val="{{ true }}">
+            <div style="margin-top:20px; background:#fff; border:1px solid #E6EBF1; border-radius:16px; overflow:hidden;">
+              <div style="display:grid; grid-template-columns:1.4fr 1.2fr 1fr 100px 90px 80px; padding:14px 22px; background:#F7F9FC; border-bottom:1px solid #EEF2F7; font-size:11.5px; font-weight:700; letter-spacing:.5px; color:#94A3B8; text-transform:uppercase;">
+                <div>Driver</div><div>Vehicle</div><div>Plate</div><div>Status</div><div style="text-align:right;">Rating</div><div style="text-align:right;">Trips</div>
+              </div>
+              <sc-for list="{{ drivers }}" as="d" hint-placeholder-count="5">
+                <div style="display:grid; grid-template-columns:1.4fr 1.2fr 1fr 100px 90px 80px; padding:15px 22px; border-bottom:1px solid #F1F4F8; align-items:center;">
+                  <div style="display:flex; align-items:center; gap:11px;">
+                    <div style="width:34px; height:34px; border-radius:50%; background:#EEF2F7; color:#1F4E79; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700;">{{ d.initials }}</div>
+                    <span style="font-size:14px; font-weight:600; color:#16263B;">{{ d.name }}</span>
+                  </div>
+                  <div style="font-size:13.5px; color:#475569;">{{ d.vehicle }} <span style="color:#94A3B8;">• {{ d.type }}</span></div>
+                  <div style="font-size:13.5px; color:#475569; letter-spacing:.4px;">{{ d.plate }}</div>
+                  <div><span style="{{ d.statusStyle }}">{{ d.statusLabel }}</span></div>
+                  <div style="font-size:13.5px; font-weight:600; color:#16263B; text-align:right;">{{ d.ratingStr }}</div>
+                  <div style="font-size:13.5px; color:#475569; text-align:right; font-variant-numeric:tabular-nums;">{{ d.trips }}</div>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+
+          <!-- fares matrix -->
+          <sc-if value="{{ adminShowFares }}" hint-placeholder-val="{{ false }}">
+            <div style="margin-top:20px; background:#fff; border:1px solid #E6EBF1; border-radius:16px; padding:22px; overflow-x:auto;">
+              <div style="font-size:14px; font-weight:700; color:#16263B;">Fixed fare matrix <span style="font-weight:500; color:#94A3B8;">(₦, read-only)</span></div>
+              <table style="margin-top:16px; border-collapse:collapse; font-size:12.5px; width:100%;">
+                <thead>
+                  <tr>
+                    <th style="text-align:left; padding:8px 10px; color:#94A3B8; font-weight:700; border-bottom:1px solid #EEF2F7;">From \ To</th>
+                    <sc-for list="{{ locHeads }}" as="h" hint-placeholder-count="8">
+                      <th style="padding:8px 10px; color:#94A3B8; font-weight:700; border-bottom:1px solid #EEF2F7; text-align:center;">{{ h.n }}</th>
+                    </sc-for>
+                  </tr>
+                </thead>
+                <tbody>
+                  <sc-for list="{{ fareRows }}" as="row" hint-placeholder-count="8">
+                    <tr>
+                      <td style="padding:9px 10px; font-weight:600; color:#16263B; border-bottom:1px solid #F4F6F9; white-space:nowrap;">{{ row.label }}</td>
+                      <sc-for list="{{ row.cells }}" as="c" hint-placeholder-count="8">
+                        <td style="{{ c.style }}">{{ c.val }}</td>
+                      </sc-for>
+                    </tr>
+                  </sc-for>
+                </tbody>
+              </table>
+              <div style="margin-top:16px; font-size:12.5px; color:#94A3B8;">Legend: 1 Main Gate · 2 Science/Tech · 3 Arts/Soc.Sci./Law · 4 Education/Agric · 5 Medicine · 6 Postgraduate · 7 Student Union · 8 Residential Halls</div>
+            </div>
+          </sc-if>
+        </div>
+      </main>
+    </sc-if>
+
+    <!-- ===================== DEMO JUMP MENU ===================== -->
+    <div style="position:fixed; right:22px; bottom:22px; z-index:80; font-size:13px;">
+      <sc-if value="{{ menuOpen }}" hint-placeholder-val="{{ false }}">
+        <div style="width:248px; background:#0F2A45; border-radius:16px; box-shadow:0 20px 50px -16px rgba(15,42,69,.5); overflow:hidden; margin-bottom:10px; animation:altms-fade .25s ease;">
+          <div style="padding:14px 16px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,.08);">
+            <span style="color:#fff; font-weight:700; font-size:13px;">Demo · jump to screen</span>
+          </div>
+          <div style="max-height:340px; overflow-y:auto; padding:8px;">
+            <sc-for list="{{ menuGroups }}" as="g" hint-placeholder-count="3">
+              <div style="padding:8px 8px 4px; color:#7C97B3; font-size:10.5px; font-weight:700; letter-spacing:.6px; text-transform:uppercase;">{{ g.title }}</div>
+              <sc-for list="{{ g.items }}" as="it" hint-placeholder-count="4">
+                <div onClick="{{ it.onClick }}" style="padding:9px 10px; border-radius:8px; color:#D7E1EC; cursor:pointer; font-size:13px;" style-hover="background:rgba(255,255,255,.08);">{{ it.label }}</div>
+              </sc-for>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+      <button onClick="{{ toggleMenu }}" style="display:flex; align-items:center; gap:9px; margin-left:auto; padding:12px 18px; background:#0F2A45; color:#fff; border:none; border-radius:13px; font:600 13.5px Inter,sans-serif; cursor:pointer; box-shadow:0 10px 26px -8px rgba(15,42,69,.5);">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="7" rx="1.5" stroke="#7FE3D6" stroke-width="2"/><rect x="14" y="3" width="7" height="7" rx="1.5" stroke="#fff" stroke-width="2"/><rect x="3" y="14" width="7" height="7" rx="1.5" stroke="#fff" stroke-width="2"/><rect x="14" y="14" width="7" height="7" rx="1.5" stroke="#7FE3D6" stroke-width="2"/></svg>
+        Screens
+      </button>
+    </div>
+
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:800}}">
+class Component extends DCLogic {
+  state = {
+    view: 'auth-login',     // auth-login | auth-signup | app
+    authRole: 'passenger',
+    role: 'passenger',
+    pScreen: 'request',     // request|waiting|matched|progress|complete|rating|done|nodrivers
+    pickup: null,
+    destination: null,
+    openField: null,        // pickup|destination|null
+    query: '',
+    rated: 0, hoverStar: 0, comment: '',
+    online: false,
+    dScreen: 'home',        // home|incoming|topickup|trip|complete|history
+    adminTab: 'trips',
+    tripFilter: 'all',
+    toast: null, toastType: 'teal',
+    menuOpen: false,
+    extraHistory: [],
+  };
+
+  get LOCS() {
+    return [
+      { id:1, x:180, y:560, name:'Main Gate / Trenchard Hall', short:'Main Gate' },
+      { id:2, x:430, y:300, name:'Faculty of Science / Technology', short:'Faculty of Science' },
+      { id:3, x:300, y:200, name:'Faculty of Arts / Social Sciences / Law', short:'Faculty of Arts' },
+      { id:4, x:640, y:180, name:'Faculty of Education / Agriculture & Forestry', short:'Education & Agric' },
+      { id:5, x:850, y:300, name:'College of Medicine (UCH area)', short:'College of Medicine' },
+      { id:6, x:560, y:420, name:'Postgraduate School', short:'Postgraduate School' },
+      { id:7, x:430, y:520, name:'Student Union / Sports Centre', short:'Student Union' },
+      { id:8, x:720, y:520, name:'Residential Halls / Staff Quarters', short:'Residential Halls' },
+    ];
+  }
+  loc(id){ return this.LOCS.find(l => l.id === Number(id)); }
+  fareFor(a, b){
+    const A = this.loc(a), B = this.loc(b);
+    if (!A || !B) return 0;
+    const d = Math.hypot(A.x - B.x, A.y - B.y);
+    let f = Math.round((d / 700 * 400) / 50) * 50;
+    return Math.max(150, Math.min(400, f));
+  }
+  distKmFor(a, b){
+    const A = this.loc(a), B = this.loc(b);
+    if (!A || !B) return '0.0';
+    const d = Math.hypot(A.x - B.x, A.y - B.y);
+    return (d / 700 * 2.6).toFixed(1);
+  }
+  naira(n){ return '₦' + n.toLocaleString('en-NG'); }
+
+  // ---- timers ----
+  clearFlow(){ if (this.flowTimer) { clearTimeout(this.flowTimer); this.flowTimer = null; } }
+  componentWillUnmount(){ this.clearFlow(); if (this.toastTimer) clearTimeout(this.toastTimer); if (this.dTimer) clearTimeout(this.dTimer); }
+  showToast(type, msg){
+    if (this.toastTimer) clearTimeout(this.toastTimer);
+    this.setState({ toast: msg, toastType: type });
+    this.toastTimer = setTimeout(() => this.setState({ toast: null }), 3400);
+  }
+
+  // ---- passenger flow ----
+  goP(screen){
+    this.clearFlow();
+    this.setState({ pScreen: screen, openField: null });
+    if (screen === 'waiting') this.flowTimer = setTimeout(() => { this.showToast('teal', 'Driver found — Tunde is on the way'); this.goP('matched'); }, 3200);
+    else if (screen === 'matched') this.flowTimer = setTimeout(() => { this.showToast('teal', 'Tunde has arrived — your trip has started'); this.goP('progress'); }, 6000);
+    else if (screen === 'progress') this.flowTimer = setTimeout(() => { this.showToast('navy', 'You have arrived at your destination'); this.goP('complete'); }, 6500);
+  }
+  resetPassenger(){ this.clearFlow(); this.setState({ pScreen:'request', pickup:null, destination:null, openField:null, query:'', rated:0, hoverStar:0, comment:'' }); }
+
+  // ---- driver flow ----
+  toggleOnline(){
+    const next = !this.state.online;
+    this.setState({ online: next });
+    if (this.dTimer) clearTimeout(this.dTimer);
+    if (next){
+      this.showToast('teal', "You're online — searching for requests");
+      this.dTimer = setTimeout(() => { if (this.state.role === 'driver' && this.state.dScreen === 'home') { this.showToast('navy', 'New ride request from Amaka'); this.setState({ dScreen:'incoming' }); } }, 3200);
+    } else {
+      this.showToast('amber', "You're offline");
+    }
+  }
+  acceptReq(){ this.setState({ dScreen:'topickup' }); this.showToast('teal', 'Ride accepted — head to pickup'); }
+  declineReq(){ this.setState({ dScreen:'home' }); this.showToast('amber', 'Request declined'); }
+  dPrimary(){
+    if (this.state.dScreen === 'topickup') { this.setState({ dScreen:'trip' }); this.showToast('teal', 'Trip started'); }
+    else if (this.state.dScreen === 'trip') { this.setState({ dScreen:'complete' }); }
+  }
+  confirmPayment(){
+    const fare = this.fareFor(7, 5);
+    const entry = { date:'Just now', route:'Student Union → College of Medicine', fareStr:this.naira(fare), ratingStr:'★ 5.0' };
+    this.setState({ extraHistory:[entry, ...this.state.extraHistory], dScreen:'home', online:true });
+    this.showToast('teal', 'Payment confirmed • ' + this.naira(fare));
+  }
+
+  renderVals(){
+    const S = this.state;
+    const C = { navy:'#1F4E79', teal:'#00A896', slate:'#475569', amber:'#B26B00' };
+    const roleColor = S.role === 'driver' ? C.teal : S.role === 'admin' ? '#475569' : C.navy;
+
+    // ---------- selector ----------
+    const otherId = S.openField === 'pickup' ? S.destination : S.pickup;
+    const q = S.query.trim().toLowerCase();
+    const selList = this.LOCS
+      .filter(l => l.id !== Number(otherId))
+      .filter(l => !q || l.name.toLowerCase().includes(q))
+      .map(l => ({
+        id:l.id, name:l.name,
+        onSelect: () => {
+          const patch = S.openField === 'pickup' ? { pickup:l.id } : { destination:l.id };
+          this.setState({ ...patch, openField:null, query:'' });
+        },
+        rowStyle: 'display:flex; align-items:center; gap:11px; padding:12px 14px; cursor:pointer; border-bottom:1px solid #F4F6F9; background:#fff;',
+      }));
+
+    const pck = S.pickup ? this.loc(S.pickup) : null;
+    const dst = S.destination ? this.loc(S.destination) : null;
+    const canRequest = !!(pck && dst);
+    const fare = canRequest ? this.fareFor(S.pickup, S.destination) : 0;
+    const fareStr = canRequest ? this.naira(fare) : '';
+
+    const fieldBase = 'display:flex; align-items:center; gap:12px; width:100%; padding:15px 16px; background:#fff; border-radius:12px; cursor:pointer; text-align:left;';
+    const pickupFieldStyle = fieldBase + 'border:1.5px solid ' + (S.openField==='pickup' ? '#1F4E79' : '#DCE3EC') + ';';
+    const destFieldStyle = fieldBase + 'border:1.5px solid ' + (S.openField==='destination' ? '#00A896' : '#DCE3EC') + ';';
+
+    // ---------- passenger banners ----------
+    const isMatched = S.pScreen === 'matched';
+    const isProgress = S.pScreen === 'progress';
+    let pBannerText = '', pBannerDot = C.teal, pBannerHalo = '#D6F2ED', pBannerStyle = '';
+    if (isMatched){ pBannerText = 'Driver en route to your pickup'; }
+    else if (isProgress){ pBannerText = 'Trip in progress'; }
+    pBannerStyle = 'display:flex; align-items:center; gap:10px; padding:13px 16px; border-radius:12px; font-size:14px; font-weight:600; background:#E6F6F4; border:1px solid #B7E6DF; color:#0A7D70;';
+
+    // ---------- stars ----------
+    const active = Math.max(S.rated, S.hoverStar);
+    const stars = [1,2,3,4,5].map(n => ({
+      fill: n <= active ? '#F5A623' : '#DDE3EB',
+      onClick: () => this.setState({ rated:n }),
+      onEnter: () => this.setState({ hoverStar:n }),
+    }));
+    const words = ['', 'Poor', 'Fair', 'Good', 'Great', 'Excellent'];
+    const ratingWord = active ? words[active] : '';
+
+    // ---------- driver job ----------
+    const jobFare = this.fareFor(7, 5);
+    const dActive = S.dScreen === 'topickup' || S.dScreen === 'trip';
+    let dBannerText = '', dPrimaryLabel = '';
+    if (S.dScreen === 'topickup'){ dBannerText = 'Head to pickup — Student Union'; dPrimaryLabel = 'Arrived & start trip'; }
+    else if (S.dScreen === 'trip'){ dBannerText = 'Trip in progress'; dPrimaryLabel = 'Complete trip'; }
+    const dBannerStyle = (S.dScreen==='trip')
+      ? 'display:flex; align-items:center; gap:10px; padding:13px 16px; border-radius:12px; font-size:14px; font-weight:600; background:#E6F6F4; border:1px solid #B7E6DF; color:#0A7D70;'
+      : 'display:flex; align-items:center; gap:10px; padding:13px 16px; border-radius:12px; font-size:14px; font-weight:600; background:#EAF1F8; border:1px solid #C5D8EC; color:#1F4E79;';
+    const dPrimaryStyle = (S.dScreen==='trip')
+      ? 'width:100%; padding:15px; background:#00A896; color:#fff; border:none; border-radius:11px; font:600 15px Inter,sans-serif; cursor:pointer;'
+      : 'width:100%; padding:15px; background:#1F4E79; color:#fff; border:none; border-radius:11px; font:600 15px Inter,sans-serif; cursor:pointer;';
+
+    // ---------- toggle ----------
+    const on = S.online;
+    const toggleCardStyle = 'margin-top:24px; display:flex; align-items:center; justify-content:space-between; padding:22px; border-radius:16px; cursor:pointer; border:1.5px solid ' + (on ? '#B7E6DF' : '#DCE3EC') + '; background:' + (on ? '#E6F6F4' : '#F7F9FC') + ';';
+    const toggleSwitchStyle = 'width:60px; height:34px; border-radius:20px; background:' + (on ? '#00A896' : '#CBD5E1') + '; position:relative; transition:background .2s; flex:none;';
+    const toggleKnobStyle = 'position:absolute; top:3px; left:' + (on ? '29px' : '3px') + '; width:28px; height:28px; border-radius:50%; background:#fff; box-shadow:0 2px 5px rgba(0,0,0,.2); transition:left .2s;';
+
+    // ---------- admin ----------
+    const drivers = [
+      { name:'Tunde Adeyemi', vehicle:'Keke NAPEP', type:'Tricycle', plate:'OYO-234-KJA', rating:4.9, trips:128, online:true },
+      { name:'Bayo Okonkwo', vehicle:'Toyota Corolla', type:'Cab', plate:'IBD-118-XF', rating:4.7, trips:204, online:true },
+      { name:'Ngozi Eze', vehicle:'Keke NAPEP', type:'Tricycle', plate:'OYO-552-KM', rating:4.8, trips:96, online:false },
+      { name:'Suleiman Bello', vehicle:'Honda City', type:'Cab', plate:'IBD-073-QA', rating:4.6, trips:151, online:true },
+      { name:'Funmi Adebayo', vehicle:'Keke NAPEP', type:'Tricycle', plate:'OYO-410-JR', rating:5.0, trips:42, online:false },
+    ].map(d => ({
+      ...d,
+      initials: d.name.split(' ').map(w => w[0]).join(''),
+      ratingStr: '★ ' + d.rating.toFixed(1),
+      statusLabel: d.online ? 'Online' : 'Offline',
+      statusStyle: d.online
+        ? 'display:inline-block; padding:3px 10px; border-radius:20px; font-size:12px; font-weight:600; background:#E6F6F4; color:#0A7D70;'
+        : 'display:inline-block; padding:3px 10px; border-radius:20px; font-size:12px; font-weight:600; background:#F1F4F8; color:#94A3B8;',
+    }));
+
+    const locHeads = this.LOCS.map(l => ({ n: l.id }));
+    const fareRows = this.LOCS.map(a => ({
+      label: a.id + '. ' + a.short,
+      cells: this.LOCS.map(b => {
+        const same = a.id === b.id;
+        return {
+          val: same ? '—' : this.fareFor(a.id, b.id),
+          style: 'padding:9px 10px; text-align:center; border-bottom:1px solid #F4F6F9; font-variant-numeric:tabular-nums; ' + (same ? 'color:#CBD5E1;' : 'color:#1B2A3D; font-weight:500;'),
+        };
+      }),
+    }));
+
+    // ---------- history ----------
+    const baseHistory = [
+      { date:'Today, 14:20', route:'Student Union → College of Medicine', fareStr:this.naira(250), ratingStr:'★ 5.0' },
+      { date:'Today, 13:05', route:'Main Gate → Faculty of Science', fareStr:this.naira(200), ratingStr:'★ 5.0' },
+      { date:'Today, 11:40', route:'Residential Halls → Main Gate', fareStr:this.naira(300), ratingStr:'★ 4.0' },
+      { date:'Yesterday, 17:15', route:'Postgraduate School → Main Gate', fareStr:this.naira(250), ratingStr:'★ 5.0' },
+    ];
+    const history = [...S.extraHistory, ...baseHistory];
+
+    // ---------- map props ----------
+    let mapPhase = 'route', mapTracking = false, mapScanning = false;
+    if (S.pScreen === 'matched'){ mapPhase = 'topickup'; mapTracking = true; }
+    else if (S.pScreen === 'progress'){ mapPhase = 'route'; mapTracking = true; }
+    else if (S.pScreen === 'waiting'){ mapScanning = true; }
+
+    let dMapPhase = 'route', dMapTracking = false;
+    if (S.dScreen === 'topickup'){ dMapPhase = 'topickup'; dMapTracking = true; }
+    else if (S.dScreen === 'trip'){ dMapPhase = 'route'; dMapTracking = true; }
+    const dShowJob = S.dScreen !== 'home' || S.online === 'never';
+
+    // ---------- demo menu ----------
+    const jp = (screen, extra) => () => { this.clearFlow(); this.setState({ role:'passenger', view:'app', pScreen:screen, openField:null, menuOpen:false, pickup: this.state.pickup || 1, destination: this.state.destination || 2, ...(extra||{}) }); };
+    const jd = (screen, extra) => () => { if (this.dTimer) clearTimeout(this.dTimer); this.setState({ role:'driver', view:'app', dScreen:screen, menuOpen:false, ...(extra||{}) }); };
+    const ja = (tab) => () => this.setState({ role:'admin', view:'app', adminTab:tab, menuOpen:false });
+    const menuGroups = [
+      { title:'Passenger', items:[
+        { label:'Request a ride', onClick: jp('request', { pickup:null, destination:null }) },
+        { label:'Looking for driver', onClick: jp('waiting') },
+        { label:'Matched · tracking', onClick: jp('matched') },
+        { label:'Trip in progress', onClick: jp('progress') },
+        { label:'Trip complete · pay', onClick: jp('complete') },
+        { label:'Rate trip', onClick: jp('rating') },
+        { label:'No drivers available', onClick: jp('nodrivers') },
+      ]},
+      { title:'Driver', items:[
+        { label:'Home · offline', onClick: jd('home', { online:false }) },
+        { label:'Home · online', onClick: jd('home', { online:true }) },
+        { label:'Incoming request', onClick: jd('incoming', { online:true }) },
+        { label:'Active · to pickup', onClick: jd('topickup', { online:true }) },
+        { label:'Active · in trip', onClick: jd('trip', { online:true }) },
+        { label:'Trip complete', onClick: jd('complete', { online:true }) },
+        { label:'Trip history', onClick: jd('history', { online:true }) },
+      ]},
+      { title:'Admin', items:[
+        { label:'All trips', onClick: ja('trips') },
+        { label:'Drivers', onClick: ja('drivers') },
+        { label:'Locations & fares', onClick: ja('fares') },
+      ]},
+      { title:'Auth', items:[
+        { label:'Login', onClick: () => this.setState({ view:'auth-login', menuOpen:false }) },
+        { label:'Sign up', onClick: () => this.setState({ view:'auth-signup', menuOpen:false }) },
+      ]},
+    ];
+
+    const requestDisabled = !canRequest;
+    const requestBtnStyle = 'margin-top:20px; display:flex; align-items:center; justify-content:center; gap:8px; width:100%; padding:16px; border:none; border-radius:12px; font:700 15.5px Inter,sans-serif; ' +
+      (canRequest ? 'background:#1F4E79; color:#fff; cursor:pointer; box-shadow:0 8px 20px -8px rgba(31,78,121,.5);' : 'background:#E6EBF1; color:#A3AEBD; cursor:not-allowed;');
+
+    const ratingDisabled = S.rated === 0;
+    const submitRatingStyle = 'margin-top:18px; width:100%; padding:15px; border:none; border-radius:11px; font:600 15px Inter,sans-serif; ' +
+      (S.rated ? 'background:#1F4E79; color:#fff; cursor:pointer;' : 'background:#E6EBF1; color:#A3AEBD; cursor:not-allowed;');
+
+    // auth styles
+    const authRolePas = S.authRole === 'passenger';
+    const authRoleBtn = (sel, col) => 'display:flex; flex-direction:column; align-items:center; gap:8px; padding:16px; border-radius:13px; cursor:pointer; font:600 14px Inter,sans-serif; ' +
+      (sel ? 'border:2px solid ' + col + '; background:' + (col==='#1F4E79'?'#EAF1F8':'#E6F6F4') + '; color:' + col + ';' : 'border:2px solid #E6EBF1; background:#fff; color:#64748B;');
+
+    const swBtn = (active, col) => 'padding:8px 16px; border:none; border-radius:8px; font:600 13.5px Inter,sans-serif; cursor:pointer; ' +
+      (active ? 'background:#fff; color:' + col + '; box-shadow:0 1px 3px rgba(16,40,70,.12);' : 'background:transparent; color:#64748B;');
+    const adminTabBtn = (active) => 'padding:9px 18px; border:none; border-radius:8px; font:600 13.5px Inter,sans-serif; cursor:pointer; ' +
+      (active ? 'background:#fff; color:#16263B; box-shadow:0 1px 3px rgba(16,40,70,.12);' : 'background:transparent; color:#64748B;');
+
+    // ---------- admin trips ----------
+    const tripStatusStyle = (st) => {
+      const map = {
+        completed: 'background:#E6F6F4; color:#0A7D70;',
+        ongoing:   'background:#EAF1F8; color:#1F4E79;',
+        cancelled: 'background:#FBEAEA; color:#C2410C;',
+      };
+      return 'display:inline-block; padding:3px 10px; border-radius:20px; font-size:11.5px; font-weight:600; ' + (map[st] || map.completed);
+    };
+    const tripStatusLabel = { completed:'Completed', ongoing:'Ongoing', cancelled:'Cancelled' };
+    const allTrips = [
+      { id:'TRP-1042', when:'Today, 14:22', passenger:'Adebola O.', driver:'Tunde Adeyemi', from:7, to:5, fare:250, payment:'Cash', status:'completed' },
+      { id:'TRP-1041', when:'Today, 14:05', passenger:'Amaka Obi', driver:'Bayo Okonkwo', from:1, to:2, fare:200, payment:'Transfer', status:'ongoing' },
+      { id:'TRP-1040', when:'Today, 13:48', passenger:'Chidi Nwosu', driver:'Tunde Adeyemi', from:8, to:1, fare:300, payment:'Cash', status:'completed' },
+      { id:'TRP-1039', when:'Today, 13:30', passenger:'Fatima Bello', driver:'Suleiman Bello', from:3, to:6, fare:200, payment:'Transfer', status:'completed' },
+      { id:'TRP-1038', when:'Today, 13:12', passenger:'Emeka Eze', driver:'Bayo Okonkwo', from:5, to:8, fare:300, payment:'—', status:'cancelled' },
+      { id:'TRP-1037', when:'Today, 12:55', passenger:'Zainab Musa', driver:'Ngozi Eze', from:2, to:4, fare:200, payment:'Cash', status:'completed' },
+      { id:'TRP-1036', when:'Today, 12:40', passenger:'Tobi Ade', driver:'Funmi Adebayo', from:1, to:7, fare:250, payment:'Cash', status:'completed' },
+      { id:'TRP-1035', when:'Today, 12:18', passenger:'Halima Sani', driver:'Suleiman Bello', from:6, to:1, fare:250, payment:'Transfer', status:'completed' },
+      { id:'TRP-1034', when:'Today, 11:50', passenger:'Kunle Bankole', driver:'Tunde Adeyemi', from:4, to:5, fare:200, payment:'Cash', status:'completed' },
+      { id:'TRP-1033', when:'Today, 11:32', passenger:'Ada Okafor', driver:'Bayo Okonkwo', from:7, to:3, fare:200, payment:'Cash', status:'cancelled' },
+      { id:'TRP-1032', when:'Today, 11:10', passenger:'Ibrahim D.', driver:'Ngozi Eze', from:8, to:2, fare:300, payment:'Transfer', status:'completed' },
+      { id:'TRP-1031', when:'Today, 10:48', passenger:'Grace Udo', driver:'Funmi Adebayo', from:1, to:5, fare:350, payment:'Cash', status:'completed' },
+    ].map(t => ({
+      ...t,
+      route: this.loc(t.from).short + ' → ' + this.loc(t.to).short,
+      fareStr: this.naira(t.fare),
+      statusStyle: tripStatusStyle(t.status),
+      statusLabel: tripStatusLabel[t.status],
+    }));
+    const tripFilterDefs = [
+      { key:'all', label:'All' },
+      { key:'completed', label:'Completed' },
+      { key:'ongoing', label:'Ongoing' },
+      { key:'cancelled', label:'Cancelled' },
+    ];
+    const tripFilters = tripFilterDefs.map(f => ({
+      label: f.label,
+      onClick: () => this.setState({ tripFilter: f.key }),
+      style: 'padding:7px 14px; border-radius:9px; font:600 12.5px Inter,sans-serif; cursor:pointer; border:1px solid ' +
+        (S.tripFilter === f.key ? '#1F4E79; background:#1F4E79; color:#fff;' : '#DCE3EC; background:#fff; color:#475569;'),
+    }));
+    const adminTripsList = allTrips.filter(t => S.tripFilter === 'all' || t.status === S.tripFilter);
+    const completedTrips = allTrips.filter(t => t.status === 'completed');
+    const revenue = completedTrips.reduce((s, t) => s + t.fare, 0);
+    const ongoingCount = allTrips.filter(t => t.status === 'ongoing').length;
+    const adminKpis = [
+      { label:'Trips today', value: allTrips.length, sub: completedTrips.length + ' completed', color:'#16263B' },
+      { label:'Revenue today', value: this.naira(revenue), sub:'Across completed trips', color:'#1F4E79' },
+      { label:'Ongoing now', value: ongoingCount, sub:'Live trips in progress', color:'#00A896' },
+      { label:'Drivers online', value: '4 / 5', sub:'Available on campus', color:'#16263B' },
+    ];
+
+    return {
+      // view flags
+      vAuth: S.view !== 'app',
+      vApp: S.view === 'app',
+      vSignup: S.view === 'auth-signup',
+      isP: S.role === 'passenger',
+      isD: S.role === 'driver',
+      isAdmin: S.role === 'admin',
+
+      // toast
+      toast: !!S.toast, toastMsg: S.toast,
+      toastColor: S.toastType === 'amber' ? '#E0A640' : S.toastType === 'navy' ? '#1F4E79' : '#00A896',
+
+      // header
+      roleColor,
+      roleLabel: S.role === 'driver' ? 'Driver' : S.role === 'admin' ? 'Admin' : 'Passenger',
+      userName: S.role === 'driver' ? 'Tunde Adeyemi' : S.role === 'admin' ? 'Admin Desk' : 'Adebola O.',
+      userInitials: S.role === 'driver' ? 'TA' : S.role === 'admin' ? 'AD' : 'AO',
+      goPassenger: () => this.setState({ role:'passenger' }),
+      goDriver: () => this.setState({ role:'driver' }),
+      goAdmin: () => this.setState({ role:'admin' }),
+      swPasStyle: swBtn(S.role==='passenger', '#1F4E79'),
+      swDrvStyle: swBtn(S.role==='driver', '#00A896'),
+      swAdmStyle: swBtn(S.role==='admin', '#475569'),
+
+      // passenger screen flags
+      pRequest: S.pScreen==='request',
+      pWaiting: S.pScreen==='waiting',
+      pTrip: S.pScreen==='matched' || S.pScreen==='progress',
+      pMap: ['request','waiting','matched','progress'].includes(S.pScreen),
+      pCenter: ['complete','rating','done','nodrivers'].includes(S.pScreen),
+      pComplete: S.pScreen==='complete',
+      pRating: S.pScreen==='rating',
+      pDone: S.pScreen==='done',
+      pNoDrivers: S.pScreen==='nodrivers',
+
+      // selector
+      openPickup: () => this.setState({ openField: S.openField==='pickup'?null:'pickup', query:'' }),
+      openDest: () => this.setState({ openField: S.openField==='destination'?null:'destination', query:'' }),
+      pickupOpen: S.openField==='pickup',
+      destOpen: S.openField==='destination',
+      pickupFieldStyle, destFieldStyle,
+      pickupLabel: pck ? pck.name : 'Select pickup location',
+      destLabel: dst ? dst.name : 'Select destination',
+      pickupWeight: pck ? '600' : '500', destWeight: dst ? '600' : '500',
+      pickupTextColor: pck ? '#16263B' : '#94A3B8', destTextColor: dst ? '#16263B' : '#94A3B8',
+      selList, query: S.query,
+      onQuery: (e) => this.setState({ query: e.target.value }),
+
+      // fare
+      canRequest, fareStr,
+      etaMins: canRequest ? Math.max(3, Math.round(this.distKmFor(S.pickup,S.destination) * 3)) : 0,
+      distKm: canRequest ? this.distKmFor(S.pickup, S.destination) : '0.0',
+      pickupShort: pck ? pck.name : '', destShort: dst ? dst.name : '',
+      requestDisabled, requestBtnStyle,
+      requestBtnLabel: canRequest ? 'Request ride · ' + fareStr : 'Request ride',
+      requestRide: () => this.goP('waiting'),
+      cancelRide: () => { this.showToast('amber', 'Ride cancelled'); this.resetPassenger(); },
+
+      // passenger trip
+      pBannerStyle, pBannerText, pBannerDot, pBannerHalo,
+      pEtaLabel: isMatched ? 'ARRIVING IN' : 'TRIP TIME',
+      pEtaValue: isMatched ? '3 min' : '~5 min',
+
+      // complete / rating
+      tripDateStr: '30 Jun 2026, ' + new Date().toLocaleTimeString('en-NG',{hour:'2-digit',minute:'2-digit'}),
+      payCash: () => { this.showToast('teal', 'Payment confirmed — cash'); this.goP('rating'); },
+      payTransfer: () => { this.showToast('teal', 'Payment confirmed — transfer'); this.goP('rating'); },
+      stars, ratingWord, comment: S.comment,
+      onComment: (e) => this.setState({ comment: e.target.value }),
+      onStarLeave: () => this.setState({ hoverStar:0 }),
+      ratingDisabled, submitRatingStyle,
+      submitRating: () => { this.showToast('teal', 'Thanks for your rating'); this.goP('done'); },
+      resetPassenger: () => this.resetPassenger(),
+
+      // map
+      mapPickup: S.pickup, mapDest: S.destination, mapPhase, mapTracking, mapScanning,
+
+      // ---- driver ----
+      dHistory: S.dScreen==='history',
+      dMapView: ['home','incoming','topickup','trip'].includes(S.dScreen),
+      dHome: S.dScreen==='home',
+      dIncoming: S.dScreen==='incoming',
+      dActive,
+      dComplete: S.dScreen==='complete',
+      online: on,
+      dHomeTitle: on ? "You're online" : "You're offline",
+      dHomeSub: on ? 'Stay on this screen to receive ride requests.' : 'Go online to start receiving ride requests.',
+      toggleOnline: () => this.toggleOnline(),
+      toggleCardStyle, toggleSwitchStyle, toggleKnobStyle,
+      toggleLabel: on ? 'Online' : 'Offline',
+      toggleDot: on ? '#00A896' : '#94A3B8',
+      toggleHalo: on ? '#D6F2ED' : '#E2E8F0',
+      toggleTextColor: on ? '#0A7D70' : '#475569',
+
+      jobPickup: 'Student Union / Sports Centre',
+      jobDest: 'College of Medicine (UCH area)',
+      jobFareStr: this.naira(jobFare),
+      acceptReq: () => this.acceptReq(),
+      declineReq: () => this.declineReq(),
+      dBannerStyle, dBannerText, dBannerDot: C.teal, dBannerHalo:'#D6F2ED',
+      dPrimaryStyle, dPrimaryLabel,
+      dPrimaryAction: () => this.dPrimary(),
+      confirmPayment: () => this.confirmPayment(),
+      dMapPickup: dShowJob ? 7 : null, dMapDest: dShowJob ? 5 : null,
+      dMapPhase, dMapTracking,
+      history,
+
+      // ---- admin ----
+      adminTrips: () => this.setState({ adminTab:'trips' }),
+      adminDrivers: () => this.setState({ adminTab:'drivers' }),
+      adminFares: () => this.setState({ adminTab:'fares' }),
+      adminShowTrips: S.adminTab==='trips',
+      adminShowDrivers: S.adminTab==='drivers',
+      adminShowFares: S.adminTab==='fares',
+      adminTab0Style: adminTabBtn(S.adminTab==='trips'),
+      adminTab1Style: adminTabBtn(S.adminTab==='drivers'),
+      adminTab2Style: adminTabBtn(S.adminTab==='fares'),
+      adminKpis, tripFilters, adminTripsList,
+      drivers, locHeads, fareRows,
+
+      // ---- auth ----
+      authTitle: S.view==='auth-signup' ? 'Create your account' : 'Welcome back',
+      authSub: S.view==='auth-signup' ? 'Join ALTMS to move around campus with ease.' : 'Sign in to request or offer rides on campus.',
+      authCta: S.view==='auth-signup' ? 'Create account' : 'Sign in',
+      authSwitchText: S.view==='auth-signup' ? 'Already have an account?' : "Don't have an account?",
+      authSwitchLink: S.view==='auth-signup' ? 'Sign in' : 'Sign up',
+      toggleAuth: () => this.setState({ view: S.view==='auth-signup' ? 'auth-login' : 'auth-signup' }),
+      doAuth: () => { this.setState({ view:'app', role:S.authRole, pScreen:'request', dScreen:'home' }); this.showToast('teal', 'Signed in as ' + (S.authRole==='driver'?'Driver':'Passenger')); },
+      setAuthPassenger: () => this.setState({ authRole:'passenger' }),
+      setAuthDriver: () => this.setState({ authRole:'driver' }),
+      authPasStyle: authRoleBtn(authRolePas, '#1F4E79'),
+      authDrvStyle: authRoleBtn(!authRolePas, '#00A896'),
+
+      // demo menu
+      menuOpen: S.menuOpen,
+      toggleMenu: () => this.setState({ menuOpen: !S.menuOpen }),
+      menuGroups,
+    };
+  }
+}
+</script>
+</body>
+</html>

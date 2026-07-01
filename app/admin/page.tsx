@@ -6,7 +6,6 @@ import { collection, query, where, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/app/contexts/AuthContext";
 import Header from "@/app/components/ui/Header";
-import { getLocationById } from "@/lib/locations";
 import { RideRequest, UserDoc } from "@/lib/types";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -191,8 +190,8 @@ export default function AdminPage() {
                 </thead>
                 <tbody>
                   {completedToday.map((ride, i) => {
-                    const pickup = getLocationById(ride.pickupLocationId)?.name ?? ride.pickupLocationId;
-                    const dest = getLocationById(ride.destinationLocationId)?.name ?? ride.destinationLocationId;
+                    const pickup = ride.pickupLocation?.name ?? "—";
+                    const dest = ride.destinationLocation?.name ?? "—";
                     return (
                       <tr
                         key={ride.id}
@@ -244,8 +243,8 @@ function StatCard({ label, value, accent, sub }: { label: string; value: string;
 }
 
 function RideRow({ ride }: { ride: RideRequest }) {
-  const pickup = getLocationById(ride.pickupLocationId)?.name ?? ride.pickupLocationId;
-  const dest = getLocationById(ride.destinationLocationId)?.name ?? ride.destinationLocationId;
+  const pickup = ride.pickupLocation?.name ?? "—";
+  const dest = ride.destinationLocation?.name ?? "—";
   const colors = STATUS_COLORS[ride.status] ?? STATUS_COLORS.pending;
 
   return (

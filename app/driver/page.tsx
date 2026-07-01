@@ -10,7 +10,6 @@ import Header from "@/app/components/ui/Header";
 import CampusMap from "@/app/components/map/CampusMap";
 import RouteCard from "@/app/components/ui/RouteCard";
 import { Button } from "@/components/ui/button";
-import { getLocationById } from "@/lib/locations";
 import { RideRequest } from "@/lib/types";
 
 export default function DriverPage() {
@@ -281,15 +280,15 @@ export default function DriverPage() {
   if (loading || !userDoc) return <LoadingScreen />;
 
   const pickupName = activeRequest
-    ? getLocationById(activeRequest.pickupLocationId)?.name ?? "Pickup"
+    ? activeRequest.pickupLocation?.name ?? "Pickup"
     : incomingRequest
-    ? getLocationById(incomingRequest.pickupLocationId)?.name ?? "Pickup"
+    ? incomingRequest.pickupLocation?.name ?? "Pickup"
     : null;
 
   const destName = activeRequest
-    ? getLocationById(activeRequest.destinationLocationId)?.name ?? "Destination"
+    ? activeRequest.destinationLocation?.name ?? "Destination"
     : incomingRequest
-    ? getLocationById(incomingRequest.destinationLocationId)?.name ?? "Destination"
+    ? incomingRequest.destinationLocation?.name ?? "Destination"
     : null;
 
   return (
@@ -391,8 +390,8 @@ export default function DriverPage() {
         {/* Map */}
         <div className="flex-1 relative min-w-0">
           <CampusMap
-            pickupId={activeRequest?.pickupLocationId ?? incomingRequest?.pickupLocationId}
-            destinationId={activeRequest?.destinationLocationId ?? incomingRequest?.destinationLocationId}
+            pickup={activeRequest?.pickupLocation ?? incomingRequest?.pickupLocation}
+            destination={activeRequest?.destinationLocation ?? incomingRequest?.destinationLocation}
             style={{ position: "absolute", inset: 0 }}
           />
         </div>

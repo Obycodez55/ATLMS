@@ -1,28 +1,44 @@
 "use client";
 
 import { useEffect, useRef, useCallback, useState } from "react";
-import { GoogleMap, useJsApiLoader, Polyline } from "@react-google-maps/api";
-import { UI_CAMPUS_CENTER, UI_CAMPUS_ZOOM, getLocationById } from "@/lib/locations";
+import { GoogleMap, useJsApiLoader, Polyline, Polygon } from "@react-google-maps/api";
+import { UI_CAMPUS_CENTER, UI_CAMPUS_ZOOM, CAMPUS_BOUNDARY, CAMPUS_BOUNDS } from "@/lib/locations";
+import { PickedLocation } from "@/lib/types";
 
 interface CampusMapProps {
-  pickupId?: string | null;
-  destinationId?: string | null;
+  pickup?: PickedLocation | null;
+  destination?: PickedLocation | null;
   driverLocation?: { lat: number; lng: number } | null;
+  onMapClick?: (loc: PickedLocation) => void;
   style?: React.CSSProperties;
 }
 
-const LIBRARIES: ("marker")[] = ["marker"];
+const LIBRARIES: ("marker" | "places")[] = ["marker", "places"];
 
 const MAP_OPTIONS: google.maps.MapOptions = {
-  mapId: "altms-campus-map",   // required for AdvancedMarkerElement
+  mapId: "altms-campus-map",
   zoomControl: true,
   mapTypeControl: false,
   streetViewControl: false,
   fullscreenControl: false,
   restriction: {
-    latLngBounds: { north: 7.465, south: 7.430, east: 3.915, west: 3.880 },
+    latLngBounds: {
+      north: CAMPUS_BOUNDS.north,
+      south: CAMPUS_BOUNDS.south,
+      east: CAMPUS_BOUNDS.east,
+      west: CAMPUS_BOUNDS.west,
+    },
     strictBounds: false,
   },
+};
+
+const BOUNDARY_OPTIONS: google.maps.PolygonOptions = {
+  strokeColor: "#1F4E79",
+  strokeOpacity: 0.35,
+  strokeWeight: 2,
+  fillColor: "#1F4E79",
+  fillOpacity: 0.04,
+  clickable: false,
 };
 
 function makePinElement(label: string, bg: string, shape: "circle" | "square" = "circle") {
@@ -53,7 +69,7 @@ function makeDriverElement() {
   return el;
 }
 
-export default function CampusMap({ pickupId, destinationId, driverLocation, style }: CampusMapProps) {
+export default function CampusMap({ pickup, destination, driverLocation, onMapClick, style }: CampusMapProps) {
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "",
     libraries: LIBRARIES,
@@ -63,54 +79,71 @@ export default function CampusMap({ pickupId, destinationId, driverLocation, sty
   const pickupMarkerRef = useRef<google.maps.marker.AdvancedMarkerElement | null>(null);
   const destMarkerRef = useRef<google.maps.marker.AdvancedMarkerElement | null>(null);
   const driverMarkerRef = useRef<google.maps.marker.AdvancedMarkerElement | null>(null);
+  const geocoderRef = useRef<google.maps.Geocoder | null>(null);
 
   const onMapLoad = useCallback((map: google.maps.Map) => {
     setMapInstance(map);
+    geocoderRef.current = new google.maps.Geocoder();
   }, []);
+
+  const handleMapClick = useCallback(
+    (e: google.maps.MapMouseEvent) => {
+      if (!onMapClick || !geocoderRef.current || !e.latLng) return;
+      const lat = e.latLng.lat();
+      const lng = e.latLng.lng();
+      geocoderRef.current.geocode({ location: { lat, lng } }, (results, status) => {
+        let name = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+        if (status === google.maps.GeocoderStatus.OK && results && results[0]) {
+          const addr = results[0].formatted_address;
+          name = addr.split(",")[0] || name;
+        }
+        onMapClick({ name, lat, lng });
+      });
+    },
+    [onMapClick]
+  );
 
   // Pickup marker
   useEffect(() => {
     if (!isLoaded || !mapInstance) return;
-    const loc = pickupId ? getLocationById(pickupId) : null;
     if (pickupMarkerRef.current) {
       pickupMarkerRef.current.map = null;
       pickupMarkerRef.current = null;
     }
-    if (loc) {
+    if (pickup) {
       pickupMarkerRef.current = new google.maps.marker.AdvancedMarkerElement({
         map: mapInstance,
-        position: { lat: loc.lat, lng: loc.lng },
+        position: { lat: pickup.lat, lng: pickup.lng },
         content: makePinElement("P", "#1F4E79"),
-        title: loc.name,
+        title: pickup.name,
       });
     }
     return () => {
       if (pickupMarkerRef.current) { pickupMarkerRef.current.map = null; pickupMarkerRef.current = null; }
     };
-  }, [isLoaded, pickupId, mapInstance]);
+  }, [isLoaded, pickup, mapInstance]);
 
   // Destination marker
   useEffect(() => {
     if (!isLoaded || !mapInstance) return;
-    const loc = destinationId ? getLocationById(destinationId) : null;
     if (destMarkerRef.current) {
       destMarkerRef.current.map = null;
       destMarkerRef.current = null;
     }
-    if (loc) {
+    if (destination) {
       destMarkerRef.current = new google.maps.marker.AdvancedMarkerElement({
         map: mapInstance,
-        position: { lat: loc.lat, lng: loc.lng },
+        position: { lat: destination.lat, lng: destination.lng },
         content: makePinElement("D", "#00A896", "square"),
-        title: loc.name,
+        title: destination.name,
       });
     }
     return () => {
       if (destMarkerRef.current) { destMarkerRef.current.map = null; destMarkerRef.current = null; }
     };
-  }, [isLoaded, destinationId, mapInstance]);
+  }, [isLoaded, destination, mapInstance]);
 
-  // Driver location marker
+  // Driver marker
   useEffect(() => {
     if (!isLoaded || !mapInstance) return;
     if (!driverLocation) {
@@ -129,11 +162,10 @@ export default function CampusMap({ pickupId, destinationId, driverLocation, sty
     }
   }, [isLoaded, driverLocation, mapInstance]);
 
-  const pickup = pickupId ? getLocationById(pickupId) : null;
-  const destination = destinationId ? getLocationById(destinationId) : null;
-  const pathPoints = pickup && destination
-    ? [{ lat: pickup.lat, lng: pickup.lng }, { lat: destination.lat, lng: destination.lng }]
-    : [];
+  const pathPoints =
+    pickup && destination
+      ? [{ lat: pickup.lat, lng: pickup.lng }, { lat: destination.lat, lng: destination.lng }]
+      : [];
 
   if (!isLoaded) {
     return (
@@ -150,7 +182,10 @@ export default function CampusMap({ pickupId, destinationId, driverLocation, sty
       zoom={UI_CAMPUS_ZOOM}
       options={MAP_OPTIONS}
       onLoad={onMapLoad}
+      onClick={onMapClick ? handleMapClick : undefined}
     >
+      <Polygon paths={CAMPUS_BOUNDARY} options={BOUNDARY_OPTIONS} />
+
       {pathPoints.length === 2 && (
         <Polyline
           path={pathPoints}

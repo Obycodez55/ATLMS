@@ -25,6 +25,13 @@ export interface Location {
   lng: number;
 }
 
+export interface PickedLocation {
+  name: string;
+  lat: number;
+  lng: number;
+  placeId?: string;
+}
+
 export interface Fare {
   id: string;
   fromLocationId: string;
@@ -42,8 +49,8 @@ export interface RideRequest {
   id: string;
   passengerId: string;
   passengerName: string;
-  pickupLocationId: string;
-  destinationLocationId: string;
+  pickupLocation: PickedLocation;
+  destinationLocation: PickedLocation;
   fare: number;
   status: RideStatus;
   driverId: string | null;

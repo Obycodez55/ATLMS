@@ -7,7 +7,6 @@ import { db } from "@/lib/firebase";
 import { useAuth } from "@/app/contexts/AuthContext";
 import Header from "@/app/components/ui/Header";
 import { Button } from "@/components/ui/button";
-import { getLocationById } from "@/lib/locations";
 import { RideRequest } from "@/lib/types";
 
 export default function DriverTripPage() {
@@ -30,8 +29,8 @@ export default function DriverTripPage() {
 
   if (!request) return <LoadingScreen />;
 
-  const pickupName = getLocationById(request.pickupLocationId)?.name ?? "Pickup";
-  const destName = getLocationById(request.destinationLocationId)?.name ?? "Destination";
+  const pickupName = request.pickupLocation?.name ?? "Pickup";
+  const destName = request.destinationLocation?.name ?? "Destination";
   const passengerFirstName = request.passengerName?.split(" ")[0] ?? "passenger";
 
   return (

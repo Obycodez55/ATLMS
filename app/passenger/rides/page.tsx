@@ -6,7 +6,6 @@ import { collection, query, where, onSnapshot, orderBy } from "firebase/firestor
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/app/contexts/AuthContext";
 import Header from "@/app/components/ui/Header";
-import { getLocationById } from "@/lib/locations";
 import { RideRequest } from "@/lib/types";
 
 export default function RidesPage() {
@@ -80,8 +79,8 @@ export default function RidesPage() {
 }
 
 function RideRow({ ride }: { ride: RideRequest }) {
-  const pickup = getLocationById(ride.pickupLocationId);
-  const dest = getLocationById(ride.destinationLocationId);
+  const pickup = ride.pickupLocation;
+  const dest = ride.destinationLocation;
   const date = ride.requestedAt?.toDate?.() ?? null;
 
   const isCompleted = ride.status === "completed";
@@ -109,6 +108,7 @@ function RideRow({ ride }: { ride: RideRequest }) {
           <div className="flex items-center gap-2 text-[13.5px] text-[#64748B] mt-1.5">
             <span className="w-2 h-2 rounded-full bg-[#00A896] flex-shrink-0" />
             <span className="truncate">{dest?.name ?? "—"}</span>
+
           </div>
         </div>
 

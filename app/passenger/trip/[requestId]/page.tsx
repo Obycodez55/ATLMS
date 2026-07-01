@@ -8,7 +8,6 @@ import { useAuth } from "@/app/contexts/AuthContext";
 import { useToast } from "@/app/contexts/ToastContext";
 import Header from "@/app/components/ui/Header";
 import { Button } from "@/components/ui/button";
-import { getLocationById } from "@/lib/locations";
 import { RideRequest } from "@/lib/types";
 
 const RATING_WORDS = ["", "Poor", "Fair", "Good", "Great", "Excellent"];
@@ -80,8 +79,8 @@ export default function PassengerTripPage() {
 
   if (!request) return <LoadingScreen />;
 
-  const pickupName = getLocationById(request.pickupLocationId)?.name ?? "Pickup";
-  const destName = getLocationById(request.destinationLocationId)?.name ?? "Destination";
+  const pickupName = request.pickupLocation?.name ?? "Pickup";
+  const destName = request.destinationLocation?.name ?? "Destination";
   const driverInitials = request.driverName
     ?.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2) ?? "??";
 

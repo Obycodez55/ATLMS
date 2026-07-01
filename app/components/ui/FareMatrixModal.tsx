@@ -1,49 +1,42 @@
 "use client";
 
-import { CAMPUS_LOCATIONS, getFare, getSharedFare } from "@/lib/locations";
+import { CAMPUS_LOCATIONS, getDistanceFare, getDistanceSharedFare, haversineMeters } from "@/lib/locations";
 
-const SHORT_NAME: Record<string, string> = {
-  "main-gate":          "Main Gate",
-  "faculty-science":    "Sci / Tech Faculty",
-  "faculty-arts":       "Arts / Law Faculty",
-  "faculty-education":  "Education Faculty",
-  "college-medicine":   "College of Medicine",
-  "postgraduate":       "Postgraduate School",
-  "student-union":      "Student Union",
-  "residential-halls":  "Residential Halls",
-};
-
-interface FarePair {
-  key: string;
-  fromName: string;
-  toName: string;
+interface RouteSample {
+  from: string;
+  to: string;
+  distM: number;
   solo: number;
   shared: number;
 }
 
-function buildPairs(): FarePair[] {
-  const pairs: FarePair[] = [];
+function buildSamples(): RouteSample[] {
+  const pairs: RouteSample[] = [];
   for (let i = 0; i < CAMPUS_LOCATIONS.length; i++) {
     for (let j = i + 1; j < CAMPUS_LOCATIONS.length; j++) {
-      const from = CAMPUS_LOCATIONS[i];
-      const to = CAMPUS_LOCATIONS[j];
-      const solo = getFare(from.id, to.id);
-      const shared = getSharedFare(from.id, to.id);
-      if (solo !== null && shared !== null) {
-        pairs.push({
-          key: `${from.id}__${to.id}`,
-          fromName: SHORT_NAME[from.id] ?? from.name,
-          toName: SHORT_NAME[to.id] ?? to.name,
-          solo,
-          shared,
-        });
-      }
+      const a = CAMPUS_LOCATIONS[i];
+      const b = CAMPUS_LOCATIONS[j];
+      const distM = Math.round(haversineMeters(a.lat, a.lng, b.lat, b.lng));
+      pairs.push({
+        from: a.name,
+        to: b.name,
+        distM,
+        solo: getDistanceFare(a.lat, a.lng, b.lat, b.lng),
+        shared: getDistanceSharedFare(a.lat, a.lng, b.lat, b.lng),
+      });
     }
   }
-  return pairs.sort((a, b) => a.solo - b.solo);
+  // Sort by distance and keep one entry per unique fare bracket, max 18 rows
+  pairs.sort((a, b) => a.distM - b.distM);
+  const seen = new Set<number>();
+  return pairs.filter((p) => {
+    if (seen.has(p.solo)) return false;
+    seen.add(p.solo);
+    return true;
+  }).slice(0, 18);
 }
 
-const FARE_PAIRS = buildPairs();
+const SAMPLES = buildSamples();
 
 export default function FareMatrixModal({ onClose }: { onClose: () => void }) {
   return (
@@ -53,14 +46,14 @@ export default function FareMatrixModal({ onClose }: { onClose: () => void }) {
       onClick={onClose}
     >
       <div
-        className="w-full max-w-[560px] bg-white rounded-[18px] shadow-2xl overflow-hidden max-h-[82vh] flex flex-col"
+        className="w-full max-w-[560px] bg-white rounded-[18px] shadow-2xl overflow-hidden max-h-[86vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#E6EBF1]">
           <div>
-            <div className="text-[18px] font-bold text-[#16263B]">Fare guide</div>
-            <div className="text-[13px] text-[#64748B] mt-0.5">All routes · Fixed fares · No surge pricing</div>
+            <div className="text-[18px] font-bold text-[#16263B]">Pricing guide</div>
+            <div className="text-[13px] text-[#64748B] mt-0.5">Distance-based · No surge pricing</div>
           </div>
           <button
             onClick={onClose}
@@ -72,43 +65,63 @@ export default function FareMatrixModal({ onClose }: { onClose: () => void }) {
           </button>
         </div>
 
-        {/* Column headers */}
-        <div className="flex items-center px-6 py-2.5 bg-[#F7F9FC] border-b border-[#E6EBF1]">
-          <span className="flex-1 text-[11.5px] font-bold text-[#94A3B8] uppercase tracking-[0.5px]">Route</span>
-          <span className="w-[70px] text-right text-[11.5px] font-bold text-[#94A3B8] uppercase tracking-[0.5px]">Solo</span>
-          <span className="w-[80px] text-right text-[11.5px] font-bold text-[#0A7D70] uppercase tracking-[0.5px]">Shared</span>
+        {/* Formula card */}
+        <div className="mx-5 mt-4 bg-[#F0F5FF] border border-[#C7D8F5] rounded-[14px] px-5 py-4 flex gap-5">
+          <div className="flex-1 text-center border-r border-[#C7D8F5] pr-5">
+            <div className="text-[11px] font-bold text-[#4B6BA9] uppercase tracking-[0.5px]">Rate</div>
+            <div className="text-[22px] font-extrabold text-[#1F4E79] mt-0.5">₦150<span className="text-[14px] font-semibold text-[#64748B]">/km</span></div>
+          </div>
+          <div className="flex-1 text-center border-r border-[#C7D8F5] pr-5">
+            <div className="text-[11px] font-bold text-[#4B6BA9] uppercase tracking-[0.5px]">Minimum</div>
+            <div className="text-[22px] font-extrabold text-[#1F4E79] mt-0.5">₦100</div>
+          </div>
+          <div className="flex-1 text-center">
+            <div className="text-[11px] font-bold text-[#0A7D70] uppercase tracking-[0.5px]">Shared save</div>
+            <div className="text-[22px] font-extrabold text-[#0A7D70] mt-0.5">30%<span className="text-[14px] font-semibold text-[#64748B]"> off</span></div>
+          </div>
         </div>
 
-        {/* Rows */}
+        {/* Column headers */}
+        <div className="flex items-center px-5 py-2.5 mt-3 bg-[#F7F9FC] border-y border-[#E6EBF1]">
+          <span className="flex-1 text-[11px] font-bold text-[#94A3B8] uppercase tracking-[0.5px]">Example route</span>
+          <span className="w-[56px] text-right text-[11px] font-bold text-[#94A3B8] uppercase tracking-[0.5px]">Dist</span>
+          <span className="w-[64px] text-right text-[11px] font-bold text-[#94A3B8] uppercase tracking-[0.5px]">Solo</span>
+          <span className="w-[70px] text-right text-[11px] font-bold text-[#0A7D70] uppercase tracking-[0.5px]">Shared</span>
+        </div>
+
+        {/* Sample rows */}
         <div className="overflow-y-auto flex-1">
-          {FARE_PAIRS.map((p, i) => (
+          {SAMPLES.map((s, i) => (
             <div
-              key={p.key}
-              className={`flex items-center gap-4 px-6 py-3.5 ${i % 2 === 0 ? "bg-white" : "bg-[#FAFBFC]"}`}
+              key={i}
+              className={`flex items-center px-5 py-3.5 ${i % 2 === 0 ? "bg-white" : "bg-[#FAFBFC]"}`}
             >
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 text-[13.5px] font-semibold text-[#16263B]">
+              <div className="flex-1 min-w-0 pr-3">
+                <div className="flex items-center gap-1.5 text-[12.5px] font-semibold text-[#16263B] truncate">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#1F4E79] flex-shrink-0" />
-                  <span className="truncate">{p.fromName}</span>
+                  <span className="truncate">{s.from}</span>
                 </div>
-                <div className="flex items-center gap-2 text-[13px] text-[#64748B] mt-1">
+                <div className="flex items-center gap-1.5 text-[12px] text-[#64748B] mt-0.5 truncate">
                   <span className="w-1.5 h-1.5 rounded-[2px] bg-[#00A896] flex-shrink-0" />
-                  <span className="truncate">{p.toName}</span>
+                  <span className="truncate">{s.to}</span>
                 </div>
               </div>
-              <div className="w-[70px] text-right font-bold text-[#16263B] tabular-nums text-[14px]">
-                ₦{p.solo}
+              <div className="w-[56px] text-right text-[12px] text-[#94A3B8] tabular-nums">
+                {s.distM < 1000 ? `${s.distM}m` : `${(s.distM / 1000).toFixed(1)}km`}
               </div>
-              <div className="w-[80px] text-right font-bold text-[#0A7D70] tabular-nums text-[14px]">
-                ₦{p.shared}
+              <div className="w-[64px] text-right font-bold text-[#16263B] tabular-nums text-[13.5px]">
+                ₦{s.solo}
+              </div>
+              <div className="w-[70px] text-right font-bold text-[#0A7D70] tabular-nums text-[13.5px]">
+                ₦{s.shared}
               </div>
             </div>
           ))}
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-3 border-t border-[#E6EBF1] bg-[#F7F9FC] text-[12px] text-[#94A3B8] text-center">
-          Shared fare applies when 2+ passengers ride the same route within the same time window.
+        <div className="px-5 py-3 border-t border-[#E6EBF1] bg-[#F7F9FC] text-[11.5px] text-[#94A3B8] text-center">
+          Fares are calculated at pickup · Shared fares split equally among co-riders
         </div>
       </div>
     </div>

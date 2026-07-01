@@ -1,20 +1,37 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { UserRole, VehicleType } from "@/lib/types";
+import { VehicleType } from "@/lib/types";
 import UICrest from "@/app/components/ui/UICrest";
 
-export default function SignupPage() {
+const PORTAL_META = {
+  passenger: {
+    label: "Passenger Portal",
+    accent: "#1F4E79",
+    tagline: "Create your account",
+    sub: "Join ALTMS and book campus rides in seconds.",
+  },
+  driver: {
+    label: "Driver Portal",
+    accent: "#00A896",
+    tagline: "Register as a driver",
+    sub: "Join the ALTMS driver network and start earning.",
+  },
+};
+
+function SignupForm() {
   const router = useRouter();
-  const [role, setRole] = useState<UserRole>("passenger");
+  const searchParams = useSearchParams();
+  const roleParam = searchParams.get("role");
+
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -23,6 +40,18 @@ export default function SignupPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // Only passenger and driver can sign up; anything else → landing
+  useEffect(() => {
+    if (!roleParam || !["passenger", "driver"].includes(roleParam)) {
+      router.replace("/");
+    }
+  }, [roleParam, router]);
+
+  if (!roleParam || !["passenger", "driver"].includes(roleParam)) return null;
+
+  const isDriver = roleParam === "driver";
+  const meta = PORTAL_META[roleParam as keyof typeof PORTAL_META];
+
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault();
     setError("");
@@ -30,19 +59,19 @@ export default function SignupPage() {
     try {
       const cred = await createUserWithEmailAndPassword(auth, email, password);
       await setDoc(doc(db, "users", cred.user.uid), {
-        role,
+        role: roleParam,
         fullName: fullName.trim(),
         email,
         phone: phone.trim(),
         createdAt: serverTimestamp(),
-        ...(role === "driver" && {
+        ...(isDriver && {
           vehicleType,
           isOnline: false,
           ratingAvg: 0,
           ratingCount: 0,
         }),
       });
-      router.replace(`/${role}`);
+      router.replace(`/${roleParam}`);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Signup failed";
       setError(friendlyError(msg));
@@ -53,9 +82,10 @@ export default function SignupPage() {
 
   return (
     <div className="flex h-screen w-full overflow-hidden">
+
       {/* ── Left panel ── */}
       <div className="relative hidden lg:flex w-[46%] min-w-[520px] flex-col overflow-hidden bg-[#0F2A45]">
-        <div className="absolute inset-0 opacity-50 bg-[#1F4E79]" />
+        <div className="absolute inset-0 bg-[#1F4E79] opacity-50" />
         <div className="absolute inset-0 bg-gradient-to-br from-[rgba(15,42,69,0.72)] to-[rgba(15,42,69,0.92)]" />
 
         <div className="relative z-10 flex items-start justify-between px-14 pt-14 text-white">
@@ -75,11 +105,20 @@ export default function SignupPage() {
         </div>
 
         <div className="relative z-10 mt-auto px-14 pb-14 text-white">
+          <div
+            className="inline-flex items-center gap-2 text-[12px] font-bold tracking-[0.5px] uppercase mb-4 px-3 py-1.5 rounded-full border border-white/20"
+            style={{ background: "rgba(255,255,255,0.1)" }}
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-white opacity-80" />
+            {meta.label}
+          </div>
           <div className="text-[30px] font-bold leading-tight max-w-[420px]">
-            Campus rides, on demand.
+            {isDriver ? "Drive. Earn. Repeat." : "Campus rides, on demand."}
           </div>
           <div className="text-[15px] opacity-80 mt-4 max-w-[380px] leading-relaxed">
-            Fixed fares, real drivers, live tracking — anywhere across the University of Ibadan campus.
+            {isDriver
+              ? "Accept ride requests from students and staff across the University of Ibadan campus. Fixed fares, no haggling."
+              : "Fixed fares, real drivers, live tracking — anywhere across the University of Ibadan campus."}
           </div>
         </div>
       </div>
@@ -87,49 +126,29 @@ export default function SignupPage() {
       {/* ── Right panel: signup form ── */}
       <div className="flex flex-1 items-center justify-center bg-[#F4F6F9] p-10 overflow-y-auto">
         <div className="w-full max-w-[400px] py-6">
-          <div className="flex items-center gap-3 mb-6">
-            <UICrest className="w-[46px] h-auto" />
-            <div className="text-[12.5px] font-semibold text-[#64748B] leading-snug">
-              University of Ibadan
-              <br />
-              <span className="text-[#94A3B8] font-medium">Official campus transport</span>
+
+          {/* Portal badge + back */}
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <UICrest className="w-[46px] h-auto" />
+              <div className="text-[12.5px] font-semibold text-[#64748B] leading-snug">
+                University of Ibadan
+                <br />
+                <span style={{ color: meta.accent }} className="font-bold">{meta.label}</span>
+              </div>
             </div>
+            <Link
+              href="/"
+              className="text-[12px] text-[#94A3B8] hover:text-[#475569] font-medium transition-colors"
+            >
+              ← All portals
+            </Link>
           </div>
 
-          <h1 className="text-[26px] font-bold text-[#16263B]">Create account</h1>
-          <p className="text-[14.5px] text-[#64748B] mt-2">Join ALTMS — it only takes a minute.</p>
+          <h1 className="text-[26px] font-bold text-[#16263B]">{meta.tagline}</h1>
+          <p className="text-[14.5px] text-[#64748B] mt-2">{meta.sub}</p>
 
-          {/* Role selector */}
-          <div className="mt-7">
-            <p className="text-[12px] font-semibold text-[#475569] mb-2.5">I am a…</p>
-            <div className="grid grid-cols-2 gap-3">
-              <RoleButton
-                active={role === "passenger"}
-                onClick={() => setRole("passenger")}
-                icon={
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                    <circle cx="12" cy="8" r="3.4" stroke="currentColor" strokeWidth="2" />
-                    <path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                  </svg>
-                }
-                label="Passenger"
-              />
-              <RoleButton
-                active={role === "driver"}
-                onClick={() => setRole("driver")}
-                icon={
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                    <path d="M3 13l2-5a2 2 0 012-1.4h10A2 2 0 0119 8l2 5v5a1 1 0 01-1 1h-1a1 1 0 01-1-1v-1H6v1a1 1 0 01-1 1H4a1 1 0 01-1-1v-5z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
-                    <circle cx="7.5" cy="14.5" r="1.2" fill="currentColor" />
-                    <circle cx="16.5" cy="14.5" r="1.2" fill="currentColor" />
-                  </svg>
-                }
-                label="Driver"
-              />
-            </div>
-          </div>
-
-          <form onSubmit={handleSignup} className="mt-5 flex flex-col gap-4">
+          <form onSubmit={handleSignup} className="mt-7 flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
               <Label className="text-[13px] font-semibold text-[#475569]">Full name</Label>
               <Input
@@ -178,18 +197,20 @@ export default function SignupPage() {
               />
             </div>
 
-            {/* Vehicle type — only for drivers */}
-            {role === "driver" && (
+            {/* Vehicle type — driver only */}
+            {isDriver && (
               <div className="flex flex-col gap-1.5">
                 <Label className="text-[13px] font-semibold text-[#475569]">Vehicle type</Label>
                 <div className="grid grid-cols-2 gap-3">
                   <VehicleButton
                     active={vehicleType === "tricycle"}
+                    accent={meta.accent}
                     onClick={() => setVehicleType("tricycle")}
                     label="Tricycle (Keke)"
                   />
                   <VehicleButton
                     active={vehicleType === "cab"}
+                    accent={meta.accent}
                     onClick={() => setVehicleType("cab")}
                     label="Cab (Car)"
                   />
@@ -206,7 +227,8 @@ export default function SignupPage() {
             <Button
               type="submit"
               disabled={loading}
-              className="mt-2 h-[50px] bg-[#1F4E79] hover:bg-[#1a4369] text-white text-[15px] font-semibold rounded-[11px] w-full"
+              className="mt-2 h-[50px] text-white text-[15px] font-semibold rounded-[11px] w-full"
+              style={{ background: meta.accent }}
             >
               {loading ? (
                 <span className="flex items-center gap-2">
@@ -219,7 +241,11 @@ export default function SignupPage() {
 
           <p className="text-center mt-5 text-[14px] text-[#64748B]">
             Already have an account?{" "}
-            <Link href="/login" className="text-[#1F4E79] font-semibold hover:underline">
+            <Link
+              href={`/login?role=${roleParam}`}
+              className="font-semibold hover:underline"
+              style={{ color: meta.accent }}
+            >
               Sign in
             </Link>
           </p>
@@ -229,12 +255,20 @@ export default function SignupPage() {
   );
 }
 
-function RoleButton({
-  active, onClick, icon, label,
+export default function SignupPage() {
+  return (
+    <Suspense>
+      <SignupForm />
+    </Suspense>
+  );
+}
+
+function VehicleButton({
+  active, accent, onClick, label,
 }: {
   active: boolean;
+  accent: string;
   onClick: () => void;
-  icon: React.ReactNode;
   label: string;
 }) {
   return (
@@ -242,29 +276,10 @@ function RoleButton({
       type="button"
       onClick={onClick}
       className={[
-        "flex items-center gap-2.5 px-4 py-3.5 rounded-[11px] border-2 text-[14px] font-semibold transition-colors cursor-pointer",
-        active
-          ? "border-[#1F4E79] bg-[#EEF4FB] text-[#1F4E79]"
-          : "border-[#DCE3EC] bg-white text-[#64748B] hover:border-[#94A3B8]",
-      ].join(" ")}
-    >
-      {icon}
-      {label}
-    </button>
-  );
-}
-
-function VehicleButton({ active, onClick, label }: { active: boolean; onClick: () => void; label: string }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={[
         "px-4 py-3 rounded-[10px] border-2 text-[13.5px] font-semibold transition-colors cursor-pointer",
-        active
-          ? "border-[#1F4E79] bg-[#EEF4FB] text-[#1F4E79]"
-          : "border-[#DCE3EC] bg-white text-[#64748B] hover:border-[#94A3B8]",
+        active ? "bg-[#EEF4FB] text-[#1F4E79]" : "border-[#DCE3EC] bg-white text-[#64748B] hover:border-[#94A3B8]",
       ].join(" ")}
+      style={active ? { borderColor: accent, color: accent, background: `${accent}14` } : {}}
     >
       {label}
     </button>

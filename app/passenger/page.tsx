@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { collection, addDoc, serverTimestamp, query, where, onSnapshot, doc, updateDoc } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, query, where, onSnapshot, doc, updateDoc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/app/contexts/AuthContext";
 import { useToast } from "@/app/contexts/ToastContext";
@@ -27,6 +27,7 @@ export default function PassengerPage() {
 
   const [activeRequest, setActiveRequest] = useState<RideRequest | null>(null);
   const prevStatusRef = useRef<string | null>(null);
+  const prevRequestIdRef = useRef<string | null>(null);
 
   const [driverLocation, setDriverLocation] = useState<{ lat: number; lng: number } | null>(null);
 
@@ -47,13 +48,24 @@ export default function PassengerPage() {
     );
     const unsub = onSnapshot(q, (snap) => {
       if (snap.empty) {
+        // Check if the last known request just completed (status won't appear in this query)
+        const lastId = prevRequestIdRef.current;
+        if (lastId) {
+          getDoc(doc(db, "rideRequests", lastId)).then((d) => {
+            if (d.exists() && d.data()?.status === "completed") {
+              router.push(`/passenger/trip/${lastId}`);
+            }
+          });
+        }
         prevStatusRef.current = null;
+        prevRequestIdRef.current = null;
         setActiveRequest(null);
       } else {
         const reqDoc = snap.docs[0];
         const next = { id: reqDoc.id, ...reqDoc.data() } as RideRequest;
         const prevStatus = prevStatusRef.current;
         prevStatusRef.current = next.status;
+        prevRequestIdRef.current = next.id;
         setActiveRequest(next);
         if (prevStatus && prevStatus !== next.status) {
           if (next.status === "accepted") showToast("Driver accepted your request!", "success");

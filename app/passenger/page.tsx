@@ -105,6 +105,7 @@ export default function PassengerPage() {
         status: "pending",
         driverId: null,
         driverName: null,
+        driverPhone: null,
         driverVehicleType: null,
         driverRating: null,
         requestedAt: serverTimestamp(),
@@ -350,19 +351,21 @@ function PassengerTripPanel({
         {/* Cancel (only while driver is coming, not in progress) */}
         {!isInProgress && (
           <div className="flex gap-2.5">
-            <Button
-              variant="outline"
-              className="flex-1 h-[50px] text-[#1F4E79] border-[#D6DEE8] hover:border-[#1F4E79] font-semibold rounded-[11px]"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="mr-2">
-                <path d="M6.5 4h3l1.5 4-2 1.5a12 12 0 005.5 5.5l1.5-2 4 1.5v3a2 2 0 01-2 2A16 16 0 014.5 6a2 2 0 012-2z" stroke="#1F4E79" strokeWidth="2" strokeLinejoin="round" />
-              </svg>
-              Call driver
-            </Button>
+            {request.driverPhone && (
+              <a
+                href={`tel:${request.driverPhone}`}
+                className="flex-1 h-[50px] flex items-center justify-center gap-2 text-[#1F4E79] border-[1.5px] border-[#D6DEE8] hover:border-[#1F4E79] font-semibold rounded-[11px] text-[14.5px] transition-colors bg-white"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <path d="M6.5 4h3l1.5 4-2 1.5a12 12 0 005.5 5.5l1.5-2 4 1.5v3a2 2 0 01-2 2A16 16 0 014.5 6a2 2 0 012-2z" stroke="#1F4E79" strokeWidth="2" strokeLinejoin="round" />
+                </svg>
+                Call driver
+              </a>
+            )}
             <Button
               onClick={onCancel}
               variant="outline"
-              className="flex-1 h-[50px] text-red-600 border-[#F0C9C9] hover:bg-red-50 font-semibold rounded-[11px]"
+              className={`${request.driverPhone ? "flex-1" : "w-full"} h-[50px] text-red-600 border-[#F0C9C9] hover:bg-red-50 font-semibold rounded-[11px]`}
             >
               Cancel
             </Button>

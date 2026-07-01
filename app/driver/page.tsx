@@ -159,6 +159,7 @@ export default function DriverPage() {
       status: "accepted",
       driverId: user.uid,
       driverName: userDoc.fullName,
+      driverPhone: userDoc.phone ?? null,
       driverVehicleType: userDoc.vehicleType ?? null,
       driverRating: userDoc.ratingAvg ?? null,
       acceptedAt: new Date(),

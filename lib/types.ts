@@ -48,6 +48,7 @@ export interface RideRequest {
   status: RideStatus;
   driverId: string | null;
   driverName: string | null;
+  driverPhone: string | null;
   driverVehicleType: VehicleType | null;
   driverRating: number | null;
   requestedAt: Timestamp;

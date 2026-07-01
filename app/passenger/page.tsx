@@ -27,6 +27,9 @@ export default function PassengerPage() {
   const [activeRequest, setActiveRequest] = useState<RideRequest | null>(null);
   const prevStatusRef = useRef<string | null>(null);
 
+  // Live driver location (populated when request is accepted/in_progress)
+  const [driverLocation, setDriverLocation] = useState<{ lat: number; lng: number } | null>(null);
+
   // Redirect if not authenticated or wrong role
   useEffect(() => {
     if (!loading && !user) router.replace("/login");
@@ -61,6 +64,29 @@ export default function PassengerPage() {
     return unsub;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
+
+  // Subscribe to driver's live location when they've accepted the ride
+  useEffect(() => {
+    const driverId = activeRequest?.driverId;
+    const status = activeRequest?.status;
+    if (!driverId || (status !== "accepted" && status !== "in_progress")) {
+      setDriverLocation(null);
+      return;
+    }
+    const unsub = onSnapshot(doc(db, "driverLocations", driverId), (snap) => {
+      if (snap.exists()) {
+        const { lat, lng } = snap.data();
+        if (lat != null && lng != null) {
+          setDriverLocation({ lat, lng });
+        } else {
+          setDriverLocation(null);
+        }
+      } else {
+        setDriverLocation(null);
+      }
+    });
+    return unsub;
+  }, [activeRequest?.driverId, activeRequest?.status]);
 
   const fare = pickupId && destId ? getFare(pickupId, destId) : null;
   const pickupLoc = pickupId ? getLocationById(pickupId) : null;
@@ -118,6 +144,7 @@ export default function PassengerPage() {
             <CampusMap
               pickupId={activeRequest.pickupLocationId}
               destinationId={activeRequest.destinationLocationId}
+              driverLocation={driverLocation}
               style={{ position: "absolute", inset: 0 }}
             />
           </div>

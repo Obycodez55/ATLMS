@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { doc, updateDoc, collection, query, where, onSnapshot, getDocs, limit } from "firebase/firestore";
+import { doc, updateDoc, setDoc, deleteDoc, serverTimestamp, collection, query, where, onSnapshot, getDocs, limit } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/app/contexts/AuthContext";
 import { useToast } from "@/app/contexts/ToastContext";
@@ -29,6 +29,9 @@ export default function DriverPage() {
 
   // Ref tracking the last incoming request id we toasted for — avoids setState-during-render
   const lastIncomingId = useRef<string | null>(null);
+
+  // Throttle ref for GPS writes — avoids flooding Firestore
+  const lastLocationWriteRef = useRef(0);
 
   // Today's stats (simple counts from Firestore)
   const [todayStats, setTodayStats] = useState({ trips: 0, earnings: 0 });
@@ -89,6 +92,32 @@ export default function DriverPage() {
     return unsub;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [online, activeRequest]);
+
+  // Live GPS tracking — writes to driverLocations/{uid} while a request is active
+  useEffect(() => {
+    if (!user || !activeRequest) return;
+    if (!navigator.geolocation) return;
+
+    const watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        const now = Date.now();
+        if (now - lastLocationWriteRef.current < 4000) return; // write at most once per 4 s
+        lastLocationWriteRef.current = now;
+        setDoc(doc(db, "driverLocations", user.uid), {
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+          updatedAt: serverTimestamp(),
+        });
+      },
+      (err) => console.warn("Geolocation error:", err.message),
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
+    );
+
+    return () => {
+      navigator.geolocation.clearWatch(watchId);
+      deleteDoc(doc(db, "driverLocations", user.uid)).catch(() => {});
+    };
+  }, [user, activeRequest]);
 
   // Load today's stats
   useEffect(() => {

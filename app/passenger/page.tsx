@@ -252,7 +252,7 @@ export default function PassengerPage() {
       <div className="flex flex-col h-screen overflow-hidden bg-[#F4F6F9]">
         <Header />
         <main className="flex flex-1 min-h-0">
-          <PassengerTripPanel request={activeRequest} onCancel={handleCancel} onExpire={handleExpire} router={router} />
+          <PassengerTripPanel request={activeRequest} driverLocation={driverLocation} onCancel={handleCancel} onExpire={handleExpire} router={router} />
           <div className="flex-1 relative min-w-0">
             <CampusMap
               pickup={activeRequest.pickupLocation}
@@ -402,11 +402,13 @@ export default function PassengerPage() {
 // ─────────────────────────────────────────────
 function PassengerTripPanel({
   request,
+  driverLocation,
   onCancel,
   onExpire,
   router,
 }: {
   request: RideRequest;
+  driverLocation: { lat: number; lng: number } | null;
   onCancel: () => void;
   onExpire: () => void;
   router: ReturnType<typeof useRouter>;
@@ -515,6 +517,22 @@ function PassengerTripPanel({
   const bannerBorder = isInProgress ? "#B7E6DF" : "#FDE68A";
   const bannerTextColor = isInProgress ? "#0A7D70" : "#92400E";
 
+  // Driver proximity (only relevant while driver is on the way)
+  const targetLoc = !isInProgress ? request.pickupLocation : null;
+  const distToPickupM =
+    driverLocation && targetLoc
+      ? Math.round(haversineMeters(driverLocation.lat, driverLocation.lng, targetLoc.lat, targetLoc.lng))
+      : null;
+  // Campus average speed ~12 km/h = 200 m/min
+  const etaMins = distToPickupM !== null ? Math.ceil(distToPickupM / 200) : null;
+  const isArrivingSoon = distToPickupM !== null && distToPickupM <= 120;
+
+  const proximityColor =
+    distToPickupM === null ? null
+    : distToPickupM <= 120 ? { bg: "#E6F6F4", border: "#B7E6DF", text: "#0A7D70", dot: "#00A896" }
+    : distToPickupM <= 350 ? { bg: "#FFFBEB", border: "#FDE68A", text: "#92400E", dot: "#F59E0B" }
+    : { bg: "#F1F4F8", border: "#D6DEE8", text: "#475569", dot: "#94A3B8" };
+
   return (
     <section className="w-[412px] flex-none bg-white border-r border-[#E6EBF1] flex flex-col overflow-y-auto">
       <div className="p-6 flex-1 flex flex-col">
@@ -557,6 +575,44 @@ function PassengerTripPanel({
             </div>
           </div>
         </div>
+
+        {/* Driver proximity — shown while driver is en route to pickup */}
+        {!isInProgress && proximityColor && distToPickupM !== null && (
+          <div
+            className="mt-3 flex items-center gap-3 px-4 py-3 rounded-[12px] border"
+            style={{ background: proximityColor.bg, borderColor: proximityColor.border }}
+          >
+            <span
+              className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${isArrivingSoon ? "animate-ping" : ""}`}
+              style={{ background: proximityColor.dot }}
+            />
+            <div className="flex-1">
+              <div className="text-[13.5px] font-bold" style={{ color: proximityColor.text }}>
+                {isArrivingSoon
+                  ? "Driver arriving now!"
+                  : `Driver is ${distToPickupM >= 1000 ? `${(distToPickupM / 1000).toFixed(1)} km` : `${distToPickupM} m`} away`}
+              </div>
+              {!isArrivingSoon && etaMins !== null && (
+                <div className="text-[12px] font-medium mt-0.5" style={{ color: proximityColor.text, opacity: 0.75 }}>
+                  Estimated arrival in {etaMins <= 1 ? "< 1 min" : `~${etaMins} min`}
+                </div>
+              )}
+            </div>
+            {/* Distance pulse ring visual */}
+            {!isArrivingSoon && (
+              <div className="flex-shrink-0 w-10 h-10 relative flex items-center justify-center">
+                <div
+                  className="absolute inset-0 rounded-full opacity-20"
+                  style={{ background: proximityColor.dot }}
+                />
+                <span className="text-[11px] font-extrabold tabular-nums" style={{ color: proximityColor.text }}>
+                  {etaMins !== null && etaMins <= 1 ? "<1" : etaMins}
+                  <span className="text-[8px] font-bold"> min</span>
+                </span>
+              </div>
+            )}
+          </div>
+        )}
 
         <RouteCard pickup={pickupName} destination={destName} fare={request.fare} className="mt-4" />
 

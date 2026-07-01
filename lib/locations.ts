@@ -53,8 +53,8 @@ export const CAMPUS_BOUNDARY: Array<{ lat: number; lng: number }> = [
 // Bounding box covering all 21 locations — used for Places API bounds & map restriction
 export const CAMPUS_BOUNDS = { north: 7.466, south: 7.438, east: 3.904, west: 3.891 };
 
-export const UI_CAMPUS_CENTER = { lat: 7.452, lng: 3.897 };
-export const UI_CAMPUS_ZOOM = 15;
+export const UI_CAMPUS_CENTER = { lat: 7.450, lng: 3.897 };
+export const UI_CAMPUS_ZOOM = 14;
 
 export function getLocationById(id: string): Location | undefined {
   return CAMPUS_LOCATIONS.find((l) => l.id === id);

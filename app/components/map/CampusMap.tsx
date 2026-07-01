@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useCallback, useState } from "react";
 import { GoogleMap, useJsApiLoader, Polyline, Polygon } from "@react-google-maps/api";
-import { UI_CAMPUS_CENTER, UI_CAMPUS_ZOOM, CAMPUS_BOUNDARY, CAMPUS_BOUNDS } from "@/lib/locations";
+import { UI_CAMPUS_CENTER, UI_CAMPUS_ZOOM, CAMPUS_BOUNDARY } from "@/lib/locations";
 import { PickedLocation } from "@/lib/types";
 
 interface CampusMapProps {
@@ -21,15 +21,8 @@ const MAP_OPTIONS: google.maps.MapOptions = {
   mapTypeControl: false,
   streetViewControl: false,
   fullscreenControl: false,
-  restriction: {
-    latLngBounds: {
-      north: CAMPUS_BOUNDS.north,
-      south: CAMPUS_BOUNDS.south,
-      east: CAMPUS_BOUNDS.east,
-      west: CAMPUS_BOUNDS.west,
-    },
-    strictBounds: false,
-  },
+  // No restriction — users can pan/zoom freely around campus
+  // Location selection is restricted via Places API bounds instead
 };
 
 const BOUNDARY_OPTIONS: google.maps.PolygonOptions = {

@@ -128,12 +128,14 @@ export default function LocationPicker({ value, onChange, placeholder, dot, excl
 
   return (
     <div ref={containerRef} className="relative">
-      {/* Trigger */}
-      <button
-        type="button"
+      {/* Trigger — div to allow a nested clear button without HTML nesting violation */}
+      <div
+        role="button"
+        tabIndex={0}
         onClick={handleOpen}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleOpen(); } }}
         className={[
-          "w-full flex items-center gap-3 px-4 py-3.5 rounded-[11px] border-[1.5px] text-left transition-colors cursor-pointer",
+          "w-full flex items-center gap-3 px-4 py-3.5 rounded-[11px] border-[1.5px] text-left transition-colors cursor-pointer select-none",
           open
             ? "border-[#1F4E79] bg-white shadow-sm"
             : "border-[#DCE3EC] bg-white hover:border-[#94A3B8]",
@@ -163,7 +165,7 @@ export default function LocationPicker({ value, onChange, placeholder, dot, excl
             <path d="M6 9l6 6 6-6" stroke="#475569" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         )}
-      </button>
+      </div>
 
       {/* Dropdown */}
       {open && (

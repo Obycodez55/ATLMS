@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { doc, updateDoc, setDoc, deleteDoc, serverTimestamp, collection, query, where, onSnapshot, getDocs, limit } from "firebase/firestore";
+import { doc, updateDoc, setDoc, deleteDoc, getDoc, serverTimestamp, collection, query, where, onSnapshot, getDocs, writeBatch } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/app/contexts/AuthContext";
 import { useToast } from "@/app/contexts/ToastContext";
@@ -30,15 +30,31 @@ export default function DriverPage() {
   // Ref tracking the last incoming request id we toasted for — avoids setState-during-render
   const lastIncomingId = useRef<string | null>(null);
 
+  // Requests this driver has declined in this session — prevents seeing the same request again
+  const declinedIds = useRef(new Set<string>());
+  // Declined group IDs — prevents seeing sibling requests from the same declined group
+  const declinedGroupIds = useRef(new Set<string>());
+
+  // Last active request id — used to detect passenger cancellations
+  const lastActiveIdRef = useRef<string | null>(null);
+
   // Throttle ref for GPS writes — avoids flooding Firestore
   const lastLocationWriteRef = useRef(0);
 
   // Today's stats (simple counts from Firestore)
   const [todayStats, setTodayStats] = useState({ trips: 0, earnings: 0 });
 
+  // Group ride info for the incoming request card
+  const [incomingGroupSize, setIncomingGroupSize] = useState(1);
+
+  // Passenger names for the active group ride
+  const [activeGroupPassengers, setActiveGroupPassengers] = useState<string[]>([]);
+
   useEffect(() => {
-    if (!loading && !user) router.replace("/login");
-  }, [loading, user, router]);
+    if (loading) return;
+    if (!user) { router.replace("/login?role=driver"); return; }
+    if (userDoc && userDoc.role !== "driver") router.replace(`/${userDoc.role}`);
+  }, [loading, user, userDoc, router]);
 
   // Sync online state from userDoc
   useEffect(() => {
@@ -56,38 +72,60 @@ export default function DriverPage() {
     const unsub = onSnapshot(q, (snap) => {
       if (!snap.empty) {
         const d = snap.docs[0];
+        lastActiveIdRef.current = d.id;
         setActiveRequest({ id: d.id, ...d.data() } as RideRequest);
       } else {
+        // Active request disappeared — check if passenger cancelled it
+        if (lastActiveIdRef.current) {
+          const cancelledId = lastActiveIdRef.current;
+          lastActiveIdRef.current = null;
+          getDoc(doc(db, "rideRequests", cancelledId)).then((snap) => {
+            if (snap.exists() && snap.data()?.cancelledBy === "passenger") {
+              showToast("Passenger cancelled the ride.", "error");
+            }
+          });
+        }
         setActiveRequest(null);
       }
     });
     return unsub;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   // Listen for incoming pending requests when online (and no active request)
   useEffect(() => {
     if (!online || activeRequest) {
       setIncomingRequest(null);
+      setIncomingGroupSize(1);
       return;
     }
-    const q = query(
-      collection(db, "rideRequests"),
-      where("status", "==", "pending"),
-      limit(1)
-    );
+    const q = query(collection(db, "rideRequests"), where("status", "==", "pending"));
     const unsub = onSnapshot(q, (snap) => {
-      if (!snap.empty) {
-        const d = snap.docs[0];
-        const req = { id: d.id, ...d.data() } as RideRequest;
-        if (lastIncomingId.current !== req.id) {
-          lastIncomingId.current = req.id;
-          showToast("New ride request!", "success");
-        }
-        setIncomingRequest(req);
-      } else {
+      const allPending = snap.docs.map(d => ({ id: d.id, ...d.data() } as RideRequest));
+      // Filter out individually declined requests and declined groups
+      const available = allPending.filter(d =>
+        !declinedIds.current.has(d.id) &&
+        (!d.groupId || !declinedGroupIds.current.has(d.groupId))
+      );
+
+      if (available.length === 0) {
         lastIncomingId.current = null;
         setIncomingRequest(null);
+        setIncomingGroupSize(1);
+        return;
       }
+
+      const first = available[0];
+      const groupSize = first.groupId
+        ? available.filter(d => d.groupId === first.groupId).length
+        : 1;
+
+      if (lastIncomingId.current !== first.id) {
+        lastIncomingId.current = first.id;
+        showToast("New ride request!", "success");
+      }
+      setIncomingRequest(first);
+      setIncomingGroupSize(groupSize);
     });
     return unsub;
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -118,6 +156,22 @@ export default function DriverPage() {
       deleteDoc(doc(db, "driverLocations", user.uid)).catch(() => {});
     };
   }, [user, activeRequest]);
+
+  // Fetch all passengers in the active group (if any)
+  useEffect(() => {
+    if (!activeRequest?.groupId) {
+      setActiveGroupPassengers([]);
+      return;
+    }
+    getDocs(query(collection(db, "rideRequests"), where("groupId", "==", activeRequest.groupId)))
+      .then(snap => {
+        setActiveGroupPassengers(
+          snap.docs
+            .filter(d => ["accepted", "in_progress"].includes(d.data().status as string))
+            .map(d => d.data().passengerName as string)
+        );
+      });
+  }, [activeRequest?.groupId, activeRequest?.status]);
 
   // Load today's stats
   useEffect(() => {
@@ -155,7 +209,7 @@ export default function DriverPage() {
 
   async function handleAccept() {
     if (!user || !userDoc || !incomingRequest) return;
-    await updateDoc(doc(db, "rideRequests", incomingRequest.id), {
+    const updateData = {
       status: "accepted",
       driverId: user.uid,
       driverName: userDoc.fullName,
@@ -163,31 +217,63 @@ export default function DriverPage() {
       driverVehicleType: userDoc.vehicleType ?? null,
       driverRating: userDoc.ratingAvg ?? null,
       acceptedAt: new Date(),
-    });
+    };
+    if (incomingRequest.groupId) {
+      // Batch-accept every pending doc in this group
+      const groupSnap = await getDocs(
+        query(collection(db, "rideRequests"), where("groupId", "==", incomingRequest.groupId))
+      );
+      const batch = writeBatch(db);
+      groupSnap.docs
+        .filter(d => d.data().status === "pending")
+        .forEach(d => batch.update(d.ref, updateData));
+      await batch.commit();
+    } else {
+      await updateDoc(doc(db, "rideRequests", incomingRequest.id), updateData);
+    }
     showToast("Ride accepted! Head to the pickup point.", "success");
     setIncomingRequest(null);
   }
 
-  async function handleDecline() {
+  function handleDecline() {
+    if (incomingRequest) {
+      if (incomingRequest.groupId) {
+        declinedGroupIds.current.add(incomingRequest.groupId);
+      } else {
+        declinedIds.current.add(incomingRequest.id);
+      }
+    }
     setIncomingRequest(null);
     showToast("Request declined.", "info");
   }
 
   async function handleStartTrip() {
     if (!activeRequest) return;
-    await updateDoc(doc(db, "rideRequests", activeRequest.id), {
-      status: "in_progress",
-      startedAt: new Date(),
-    });
+    if (activeRequest.groupId) {
+      const snap = await getDocs(query(collection(db, "rideRequests"), where("groupId", "==", activeRequest.groupId)));
+      const batch = writeBatch(db);
+      snap.docs
+        .filter(d => d.data().status === "accepted")
+        .forEach(d => batch.update(d.ref, { status: "in_progress", startedAt: new Date() }));
+      await batch.commit();
+    } else {
+      await updateDoc(doc(db, "rideRequests", activeRequest.id), { status: "in_progress", startedAt: new Date() });
+    }
     showToast("Trip started!", "success");
   }
 
   async function handleCompleteTrip() {
     if (!activeRequest) return;
-    await updateDoc(doc(db, "rideRequests", activeRequest.id), {
-      status: "completed",
-      completedAt: new Date(),
-    });
+    if (activeRequest.groupId) {
+      const snap = await getDocs(query(collection(db, "rideRequests"), where("groupId", "==", activeRequest.groupId)));
+      const batch = writeBatch(db);
+      snap.docs
+        .filter(d => d.data().status === "in_progress")
+        .forEach(d => batch.update(d.ref, { status: "completed", completedAt: new Date() }));
+      await batch.commit();
+    } else {
+      await updateDoc(doc(db, "rideRequests", activeRequest.id), { status: "completed", completedAt: new Date() });
+    }
     showToast("Trip completed! Collect your fare.", "success");
     router.push(`/driver/trip/${activeRequest.id}`);
   }
@@ -283,6 +369,7 @@ export default function DriverPage() {
               request={incomingRequest}
               pickupName={pickupName!}
               destName={destName!}
+              groupSize={incomingGroupSize}
               onAccept={handleAccept}
               onDecline={handleDecline}
             />
@@ -294,6 +381,7 @@ export default function DriverPage() {
               request={activeRequest}
               pickupName={pickupName!}
               destName={destName!}
+              groupPassengers={activeGroupPassengers}
               onStart={handleStartTrip}
               onComplete={handleCompleteTrip}
             />
@@ -317,26 +405,41 @@ export default function DriverPage() {
 // Incoming request panel
 // ─────────────────────────────────────────────
 function IncomingRequestPanel({
-  request, pickupName, destName, onAccept, onDecline,
+  request, pickupName, destName, groupSize, onAccept, onDecline,
 }: {
   request: RideRequest;
   pickupName: string;
   destName: string;
+  groupSize: number;
   onAccept: () => void;
   onDecline: () => void;
 }) {
   const passengerInitials = request.passengerName
     ?.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2) ?? "?";
 
+  const isGroup = groupSize > 1;
+
   return (
     <div className="p-6 flex-1 flex flex-col">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 text-[13px] font-bold text-[#00A896] uppercase tracking-[0.5px]">
           <span className="w-2 h-2 rounded-full bg-[#00A896]" style={{ boxShadow: "0 0 0 4px #D6F2ED" }} />
-          New request
+          {isGroup ? "Group request" : "New request"}
         </div>
         <div className="w-[38px] h-[38px] rounded-full border-[3px] border-[#E6F6F4] border-t-[#00A896] animate-spin" />
       </div>
+
+      {/* Group badge */}
+      {isGroup && (
+        <div className="mt-3 inline-flex items-center gap-1.5 self-start px-3 py-1.5 rounded-full bg-[#E6F6F4] border border-[#B7E6DF] text-[#0A7D70] text-[12px] font-bold">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+            <circle cx="9" cy="7" r="3" stroke="#0A7D70" strokeWidth="2"/>
+            <circle cx="15" cy="7" r="3" stroke="#0A7D70" strokeWidth="2"/>
+            <path d="M3 19c0-3.314 2.686-6 6-6h6c3.314 0 6 2.686 6 6" stroke="#0A7D70" strokeWidth="2" strokeLinecap="round"/>
+          </svg>
+          {groupSize} passengers · shared keke
+        </div>
+      )}
 
       <div className="mt-4 border border-[#E6EBF1] rounded-[16px] p-[18px]">
         <div className="flex items-center gap-3">
@@ -344,12 +447,18 @@ function IncomingRequestPanel({
             {passengerInitials}
           </div>
           <div className="flex-1">
-            <div className="text-[15.5px] font-bold text-[#16263B]">{request.passengerName}</div>
-            <div className="text-[12.5px] text-[#64748B] mt-0.5">Passenger</div>
+            <div className="text-[15.5px] font-bold text-[#16263B]">
+              {request.passengerName}{isGroup ? ` +${groupSize - 1}` : ""}
+            </div>
+            <div className="text-[12.5px] text-[#64748B] mt-0.5">
+              {isGroup ? `${groupSize} passengers` : "Passenger"}
+            </div>
           </div>
           <div className="text-right">
-            <div className="text-[22px] font-extrabold text-[#1F4E79] tabular-nums">₦{request.fare.toLocaleString()}</div>
-            <div className="text-[11.5px] text-[#94A3B8]">fixed fare</div>
+            <div className="text-[22px] font-extrabold text-[#1F4E79] tabular-nums">
+              ₦{(request.fare * groupSize).toLocaleString()}
+            </div>
+            <div className="text-[11.5px] text-[#94A3B8]">{isGroup ? "total fare" : "fixed fare"}</div>
           </div>
         </div>
 
@@ -390,11 +499,12 @@ function IncomingRequestPanel({
 // Active trip panel
 // ─────────────────────────────────────────────
 function ActiveTripPanel({
-  request, pickupName, destName, onStart, onComplete,
+  request, pickupName, destName, groupPassengers, onStart, onComplete,
 }: {
   request: RideRequest;
   pickupName: string;
   destName: string;
+  groupPassengers: string[];
   onStart: () => void;
   onComplete: () => void;
 }) {
@@ -402,6 +512,7 @@ function ActiveTripPanel({
     ?.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2) ?? "?";
 
   const isInProgress = request.status === "in_progress";
+  const isGroup = groupPassengers.length > 1;
   const bannerText = isInProgress ? "Trip in progress" : "Heading to pickup";
   const bannerBg = isInProgress ? "#E6F6F4" : "#EFF6FF";
   const bannerBorder = isInProgress ? "#B7E6DF" : "#BFDBFE";
@@ -421,26 +532,55 @@ function ActiveTripPanel({
           style={{ background: bannerDot, boxShadow: `0 0 0 4px ${bannerHalo}` }}
         />
         {bannerText}
+        {isGroup && (
+          <span className="ml-auto text-[11.5px] font-bold opacity-80 flex items-center gap-1">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+              <circle cx="9" cy="7" r="3" stroke="currentColor" strokeWidth="2"/>
+              <circle cx="15" cy="7" r="3" stroke="currentColor" strokeWidth="2"/>
+              <path d="M3 19c0-3.314 2.686-6 6-6h6c3.314 0 6 2.686 6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+            {groupPassengers.length} passengers
+          </span>
+        )}
       </div>
 
       {/* Passenger card */}
       <div className="mt-4 border border-[#E6EBF1] rounded-[16px] p-[18px]">
-        <div className="flex items-center gap-3">
-          <div className="w-[46px] h-[46px] rounded-full bg-[#EEF2F7] text-[#1F4E79] flex items-center justify-center text-[15px] font-bold flex-shrink-0">
-            {passengerInitials}
+        {isGroup ? (
+          <div className="flex flex-col gap-2.5">
+            {groupPassengers.map((name, i) => {
+              const initials = name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
+              return (
+                <div key={i} className="flex items-center gap-3">
+                  <div className="w-[38px] h-[38px] rounded-full bg-[#EEF2F7] text-[#1F4E79] flex items-center justify-center text-[13px] font-bold flex-shrink-0">
+                    {initials}
+                  </div>
+                  <div>
+                    <div className="text-[14.5px] font-bold text-[#16263B]">{name}</div>
+                    <div className="text-[12px] text-[#64748B]">Passenger {i + 1}</div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
-          <div className="flex-1">
-            <div className="text-[15.5px] font-bold text-[#16263B]">{request.passengerName}</div>
-            <div className="text-[12.5px] text-[#64748B] mt-0.5">Passenger</div>
+        ) : (
+          <div className="flex items-center gap-3">
+            <div className="w-[46px] h-[46px] rounded-full bg-[#EEF2F7] text-[#1F4E79] flex items-center justify-center text-[15px] font-bold flex-shrink-0">
+              {passengerInitials}
+            </div>
+            <div className="flex-1">
+              <div className="text-[15.5px] font-bold text-[#16263B]">{request.passengerName}</div>
+              <div className="text-[12.5px] text-[#64748B] mt-0.5">Passenger</div>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       <RouteCard
         pickup={pickupName}
         destination={destName}
-        fare={request.fare}
-        fareLabel="Collect on arrival"
+        fare={isGroup ? request.fare * groupPassengers.length : request.fare}
+        fareLabel={isGroup ? `Collect ₦${request.fare.toLocaleString()} × ${groupPassengers.length} passengers` : "Collect on arrival"}
         className="mt-4"
       />
 

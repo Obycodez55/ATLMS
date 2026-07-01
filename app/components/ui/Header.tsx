@@ -18,8 +18,9 @@ export default function Header() {
   const pathname = usePathname();
 
   async function handleSignOut() {
+    const role = userDoc?.role;
     await signOut(auth);
-    router.push("/login");
+    router.push(role ? `/login?role=${role}` : "/");
   }
 
   const roleColor = ROLE_COLOR[userDoc?.role ?? "passenger"];
@@ -31,9 +32,20 @@ export default function Header() {
     .toUpperCase()
     .slice(0, 2) ?? "?";
 
-  const activeTab = (["passenger", "driver", "admin"] as const).find((r) =>
-    pathname.startsWith(`/${r}`)
-  );
+  const ROLE_TABS: Record<string, { href: string; label: string }[]> = {
+    passenger: [
+      { href: "/passenger", label: "Home" },
+      { href: "/passenger/rides", label: "My rides" },
+    ],
+    driver: [
+      { href: "/driver", label: "Dashboard" },
+    ],
+    admin: [
+      { href: "/admin", label: "Overview" },
+    ],
+  };
+
+  const tabs = userDoc ? (ROLE_TABS[userDoc.role] ?? []) : [];
 
   return (
     <header className="relative flex-none h-16 bg-white border-b border-[#E6EBF1] flex items-center px-6 gap-5 z-20 shadow-[0_1px_0_rgba(16,40,70,0.02)]">
@@ -41,7 +53,7 @@ export default function Header() {
       <div className="absolute top-0 left-0 right-0 h-[3px]" style={{ background: roleColor }} />
 
       {/* Logo */}
-      <Link href="/" className="flex items-center gap-2.5 no-underline">
+      <Link href={userDoc ? `/${userDoc.role}` : "/"} className="flex items-center gap-2.5 no-underline">
         <div className="w-9 h-9 rounded-[10px] bg-[#1F4E79] flex items-center justify-center flex-shrink-0">
           <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
             <path d="M12 2C8 2 5 5 5 9c0 5 7 13 7 13s7-8 7-13c0-4-3-7-7-7z" fill="#fff" />
@@ -56,23 +68,26 @@ export default function Header() {
 
       <div className="flex-1" />
 
-      {/* Role tabs */}
-      {userDoc && (
+      {/* Role-specific tabs */}
+      {tabs.length > 0 && (
         <nav className="flex bg-[#EEF2F7] rounded-[11px] p-1 gap-0.5">
-          {(["passenger", "driver", "admin"] as const).map((r) => {
-            const isActive = activeTab === r;
+          {tabs.map((tab) => {
+            const isActive = tab.href === "/passenger"
+              ? pathname === "/passenger"
+              : pathname.startsWith(tab.href);
             return (
               <Link
-                key={r}
-                href={`/${r}`}
+                key={tab.href}
+                href={tab.href}
                 className={[
                   "px-4 py-[7px] rounded-[8px] text-[13px] font-medium no-underline transition-colors",
                   isActive
-                    ? "bg-white text-[#1F4E79] shadow-sm font-semibold"
+                    ? "bg-white shadow-sm font-semibold"
                     : "text-[#64748B] hover:text-[#1F4E79]",
                 ].join(" ")}
+                style={isActive ? { color: roleColor } : {}}
               >
-                {r.charAt(0).toUpperCase() + r.slice(1)}
+                {tab.label}
               </Link>
             );
           })}

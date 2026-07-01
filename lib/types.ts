@@ -52,10 +52,12 @@ export interface RideRequest {
   driverVehicleType: VehicleType | null;
   driverRating: number | null;
   requestedAt: Timestamp;
+  expiresAt: Timestamp | null;
   acceptedAt: Timestamp | null;
   startedAt: Timestamp | null;
   completedAt: Timestamp | null;
   paymentConfirmed: boolean;
+  cancelledBy: string | null;
   rating: number | null;
   ratingComment: string | null;
   groupId: string | null;

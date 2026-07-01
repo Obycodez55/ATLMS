@@ -42,6 +42,13 @@ export function getLocationById(id: string): Location | undefined {
   return CAMPUS_LOCATIONS.find((l) => l.id === id);
 }
 
+// Shared-ride fare: 70 % of solo, rounded to nearest ₦10
+export function getSharedFare(fromId: string, toId: string): number | null {
+  const solo = getFare(fromId, toId);
+  if (solo === null) return null;
+  return Math.round(solo * 0.7 / 10) * 10;
+}
+
 // UI campus center for map bounds
 export const UI_CAMPUS_CENTER = { lat: 7.4478, lng: 3.8985 };
 export const UI_CAMPUS_ZOOM = 15;

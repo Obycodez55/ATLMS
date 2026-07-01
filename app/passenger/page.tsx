@@ -11,7 +11,8 @@ import CampusMap from "@/app/components/map/CampusMap";
 import LocationPicker from "@/app/components/ui/LocationPicker";
 import RouteCard from "@/app/components/ui/RouteCard";
 import { Button } from "@/components/ui/button";
-import { getFare, getLocationById } from "@/lib/locations";
+import { getFare, getSharedFare, getLocationById } from "@/lib/locations";
+import FareMatrixModal from "@/app/components/ui/FareMatrixModal";
 import { RideRequest } from "@/lib/types";
 
 export default function PassengerPage() {
@@ -22,6 +23,7 @@ export default function PassengerPage() {
   const [pickupId, setPickupId] = useState<string | null>(null);
   const [destId, setDestId] = useState<string | null>(null);
   const [requesting, setRequesting] = useState(false);
+  const [showFareMatrix, setShowFareMatrix] = useState(false);
 
   // Active ride request for this passenger
   const [activeRequest, setActiveRequest] = useState<RideRequest | null>(null);
@@ -30,10 +32,15 @@ export default function PassengerPage() {
   // Live driver location (populated when request is accepted/in_progress)
   const [driverLocation, setDriverLocation] = useState<{ lat: number; lng: number } | null>(null);
 
+  // Arrival alert — fires once per trip when driver is within 150 m of pickup
+  const hasAlertedArrivalRef = useRef(false);
+
   // Redirect if not authenticated or wrong role
   useEffect(() => {
-    if (!loading && !user) router.replace("/login");
-  }, [loading, user, router]);
+    if (loading) return;
+    if (!user) { router.replace("/login?role=passenger"); return; }
+    if (userDoc && userDoc.role !== "passenger") router.replace(`/${userDoc.role}`);
+  }, [loading, user, userDoc, router]);
 
   // Listen for any active (non-completed, non-cancelled) request by this passenger
   useEffect(() => {
@@ -88,7 +95,25 @@ export default function PassengerPage() {
     return unsub;
   }, [activeRequest?.driverId, activeRequest?.status]);
 
+  // Reset arrival alert when the trip changes
+  useEffect(() => {
+    hasAlertedArrivalRef.current = false;
+  }, [activeRequest?.id]);
+
+  // Driver arrival alert — toast when driver is within 150 m of pickup
+  useEffect(() => {
+    if (!driverLocation || activeRequest?.status !== "accepted" || hasAlertedArrivalRef.current) return;
+    const pickup = getLocationById(activeRequest.pickupLocationId);
+    if (!pickup) return;
+    const dist = haversineMeters(driverLocation.lat, driverLocation.lng, pickup.lat, pickup.lng);
+    if (dist <= 150) {
+      showToast("Your driver is almost here!", "success");
+      hasAlertedArrivalRef.current = true;
+    }
+  }, [driverLocation, activeRequest?.status, activeRequest?.pickupLocationId, showToast]);
+
   const fare = pickupId && destId ? getFare(pickupId, destId) : null;
+  const sharedFare = pickupId && destId ? getSharedFare(pickupId, destId) : null;
   const pickupLoc = pickupId ? getLocationById(pickupId) : null;
   const destLoc = destId ? getLocationById(destId) : null;
 
@@ -109,10 +134,12 @@ export default function PassengerPage() {
         driverVehicleType: null,
         driverRating: null,
         requestedAt: serverTimestamp(),
+        expiresAt: new Date(Date.now() + 8 * 60 * 1000),
         acceptedAt: null,
         startedAt: null,
         completedAt: null,
         paymentConfirmed: false,
+        cancelledBy: null,
         rating: null,
         ratingComment: null,
         groupId: null,
@@ -127,9 +154,54 @@ export default function PassengerPage() {
 
   async function handleCancel() {
     if (!activeRequest) return;
-    await updateDoc(doc(db, "rideRequests", activeRequest.id), { status: "cancelled" });
+    await updateDoc(doc(db, "rideRequests", activeRequest.id), { status: "cancelled", cancelledBy: "passenger" });
     setActiveRequest(null);
     showToast("Ride request cancelled.", "info");
+  }
+
+  async function handleExpire() {
+    if (!activeRequest) return;
+    await updateDoc(doc(db, "rideRequests", activeRequest.id), { status: "cancelled", cancelledBy: "system" });
+    setActiveRequest(null);
+    showToast("No driver was available. Please try again.", "error");
+  }
+
+  async function handleRequestSharedRide() {
+    if (!user || !userDoc || !pickupId || !destId || sharedFare === null) return;
+    setRequesting(true);
+    // Deterministic groupId: same route within the same 10-minute window auto-groups passengers
+    const windowSlot = Math.floor(Date.now() / (10 * 60 * 1000));
+    const groupId = `${pickupId}__${destId}__${windowSlot}`;
+    try {
+      await addDoc(collection(db, "rideRequests"), {
+        passengerId: user.uid,
+        passengerName: userDoc.fullName,
+        pickupLocationId: pickupId,
+        destinationLocationId: destId,
+        fare: sharedFare,
+        status: "pending",
+        driverId: null,
+        driverName: null,
+        driverPhone: null,
+        driverVehicleType: null,
+        driverRating: null,
+        requestedAt: serverTimestamp(),
+        expiresAt: new Date(Date.now() + 8 * 60 * 1000),
+        acceptedAt: null,
+        startedAt: null,
+        completedAt: null,
+        paymentConfirmed: false,
+        cancelledBy: null,
+        rating: null,
+        ratingComment: null,
+        groupId,
+      });
+      showToast("Shared ride requested! Grouping you with nearby passengers…", "info");
+    } catch {
+      showToast("Failed to request shared ride. Try again.", "error");
+    } finally {
+      setRequesting(false);
+    }
   }
 
   if (loading || !userDoc) return <LoadingScreen />;
@@ -140,7 +212,7 @@ export default function PassengerPage() {
       <div className="flex flex-col h-screen overflow-hidden bg-[#F4F6F9]">
         <Header />
         <main className="flex flex-1 min-h-0">
-          <PassengerTripPanel request={activeRequest} onCancel={handleCancel} router={router} />
+          <PassengerTripPanel request={activeRequest} onCancel={handleCancel} onExpire={handleExpire} router={router} />
           <div className="flex-1 relative min-w-0">
             <CampusMap
               pickupId={activeRequest.pickupLocationId}
@@ -162,7 +234,15 @@ export default function PassengerPage() {
         {/* Left panel */}
         <section className="w-[412px] flex-none bg-white border-r border-[#E6EBF1] flex flex-col overflow-y-auto">
           <div className="p-7">
-            <h1 className="text-[22px] font-bold text-[#16263B]">Where are you going?</h1>
+            <div className="flex items-start justify-between gap-2">
+              <h1 className="text-[22px] font-bold text-[#16263B]">Where are you going?</h1>
+              <button
+                onClick={() => setShowFareMatrix(true)}
+                className="flex-shrink-0 mt-1 text-[12.5px] text-[#1F4E79] font-semibold hover:underline cursor-pointer bg-transparent border-none p-0"
+              >
+                View fares →
+              </button>
+            </div>
             <p className="text-[13.5px] text-[#64748B] mt-1.5">Pick a location on campus — fares are fixed.</p>
 
             <div className="mt-6 flex flex-col gap-3.5">
@@ -185,18 +265,25 @@ export default function PassengerPage() {
             {/* Fare card */}
             {fare !== null && pickupLoc && destLoc && (
               <div className="mt-6 bg-[#F7F9FC] border border-[#E6EBF1] rounded-[14px] p-[18px_20px] animate-[altms-fade_.3s_ease]">
-                <div className="flex items-end justify-between">
+                <div className="flex items-end justify-between gap-4">
                   <div>
-                    <div className="text-[11px] font-bold tracking-[0.6px] text-[#94A3B8] uppercase">Fixed fare</div>
+                    <div className="text-[11px] font-bold tracking-[0.6px] text-[#94A3B8] uppercase">Solo fare</div>
                     <div className="text-[34px] font-extrabold text-[#1F4E79] mt-0.5 tabular-nums">₦{fare.toLocaleString()}</div>
                   </div>
+                  {sharedFare !== null && (
+                    <div className="text-right">
+                      <div className="text-[11px] font-bold tracking-[0.6px] text-[#94A3B8] uppercase">Shared fare</div>
+                      <div className="text-[22px] font-bold text-[#0A7D70] mt-0.5 tabular-nums">₦{sharedFare.toLocaleString()}</div>
+                      <div className="text-[11px] text-[#64748B]">per person</div>
+                    </div>
+                  )}
                 </div>
                 <div className="mt-3.5 pt-3.5 border-t border-dashed border-[#DCE3EC] flex items-center gap-2 text-[12.5px] text-[#0A7D70] font-semibold">
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
                     <path d="M9 12l2 2 4-4" stroke="#0A7D70" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                     <circle cx="12" cy="12" r="9" stroke="#0A7D70" strokeWidth="2" />
                   </svg>
-                  No surge pricing • Pay cash or transfer
+                  No surge pricing · Pay cash or transfer
                 </div>
               </div>
             )}
@@ -213,6 +300,23 @@ export default function PassengerPage() {
                 </span>
               ) : fare !== null ? `Request ride — ₦${fare.toLocaleString()}` : "Request ride"}
             </Button>
+
+            {/* Shared ride option */}
+            {pickupId && destId && sharedFare !== null && (
+              <Button
+                onClick={handleRequestSharedRide}
+                disabled={requesting}
+                variant="outline"
+                className="mt-2.5 w-full h-[46px] text-[#0A7D70] border-[#B7E6DF] hover:bg-[#E6F6F4] text-[14px] font-semibold rounded-[11px] disabled:opacity-40"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="mr-2 flex-shrink-0">
+                  <circle cx="9" cy="7" r="3" stroke="#0A7D70" strokeWidth="1.8"/>
+                  <circle cx="15" cy="7" r="3" stroke="#0A7D70" strokeWidth="1.8"/>
+                  <path d="M3 19c0-3.314 2.686-6 6-6h6c3.314 0 6 2.686 6 6" stroke="#0A7D70" strokeWidth="1.8" strokeLinecap="round"/>
+                </svg>
+                Share a keke — ₦{sharedFare.toLocaleString()} each
+              </Button>
+            )}
           </div>
         </section>
 
@@ -225,8 +329,23 @@ export default function PassengerPage() {
           />
         </div>
       </main>
+
+      {showFareMatrix && <FareMatrixModal onClose={() => setShowFareMatrix(false)} />}
     </div>
   );
+}
+
+// ─────────────────────────────────────────────
+// Haversine distance helper (metres)
+// ─────────────────────────────────────────────
+function haversineMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371000;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
 // ─────────────────────────────────────────────
@@ -235,16 +354,39 @@ export default function PassengerPage() {
 function PassengerTripPanel({
   request,
   onCancel,
+  onExpire,
   router,
 }: {
   request: RideRequest;
   onCancel: () => void;
+  onExpire: () => void;
   router: ReturnType<typeof useRouter>;
 }) {
   const pickupLoc = getLocationById(request.pickupLocationId);
   const destLoc = getLocationById(request.destinationLocationId);
   const pickupName = pickupLoc?.name ?? "Pickup";
   const destName = destLoc?.name ?? "Destination";
+
+  // Countdown state — seconds remaining until expiry
+  const [secondsLeft, setSecondsLeft] = useState<number | null>(null);
+  const onExpireRef = useRef(onExpire);
+  onExpireRef.current = onExpire;
+
+  useEffect(() => {
+    if (request.status !== "pending" || !request.expiresAt) return;
+    const expiryMs = request.expiresAt.toMillis
+      ? request.expiresAt.toMillis()
+      : (request.expiresAt as unknown as { seconds: number }).seconds * 1000;
+
+    const tick = () => {
+      const remaining = Math.max(0, Math.round((expiryMs - Date.now()) / 1000));
+      setSecondsLeft(remaining);
+      if (remaining === 0) onExpireRef.current();
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [request.status, request.expiresAt]);
 
   // Completed → redirect to trip completion page
   useEffect(() => {
@@ -260,11 +402,28 @@ function PassengerTripPanel({
     .toUpperCase()
     .slice(0, 2) ?? "??";
 
+  const formatCountdown = (secs: number) => {
+    const m = Math.floor(secs / 60).toString().padStart(2, "0");
+    const s = (secs % 60).toString().padStart(2, "0");
+    return `${m}:${s}`;
+  };
+
   // ── Waiting state
   if (request.status === "pending") {
     return (
       <section className="w-[412px] flex-none bg-white border-r border-[#E6EBF1] flex flex-col overflow-y-auto">
         <div className="p-7 flex-1 flex flex-col">
+          {/* Shared ride badge */}
+          {request.groupId && (
+            <div className="inline-flex items-center gap-1.5 self-start mb-4 px-2.5 py-1 rounded-full bg-[#E6F6F4] border border-[#B7E6DF] text-[#0A7D70] text-[11.5px] font-bold">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                <circle cx="9" cy="7" r="3" stroke="#0A7D70" strokeWidth="2"/>
+                <circle cx="15" cy="7" r="3" stroke="#0A7D70" strokeWidth="2"/>
+                <path d="M3 19c0-3.314 2.686-6 6-6h6c3.314 0 6 2.686 6 6" stroke="#0A7D70" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+              Shared ride · ₦{request.fare.toLocaleString()} per person
+            </div>
+          )}
           <div className="flex items-center gap-3.5">
             <div className="relative w-[46px] h-[46px] flex-shrink-0">
               <div className="absolute inset-0 border-[3px] border-[#E6F6F4] border-t-[#00A896] rounded-full animate-spin" />
@@ -281,6 +440,19 @@ function PassengerTripPanel({
             fare={request.fare}
             className="mt-6"
           />
+
+          {/* Expiry countdown */}
+          {secondsLeft !== null && (
+            <div className={[
+              "mt-4 flex items-center justify-between px-4 py-3 rounded-[10px] border text-[13px] font-semibold",
+              secondsLeft <= 60
+                ? "bg-red-50 border-red-200 text-red-600"
+                : "bg-[#FFFBEB] border-[#FDE68A] text-[#92400E]",
+            ].join(" ")}>
+              <span>Auto-cancels if no driver found</span>
+              <span className="tabular-nums font-bold">{formatCountdown(secondsLeft)}</span>
+            </div>
+          )}
 
           <div className="flex-1" />
           <Button
@@ -317,6 +489,16 @@ function PassengerTripPanel({
             style={{ background: bannerDot, boxShadow: `0 0 0 4px ${bannerHalo}` }}
           />
           {bannerText}
+          {request.groupId && (
+            <span className="ml-auto flex items-center gap-1 text-[11.5px] font-bold opacity-80">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                <circle cx="9" cy="7" r="3" stroke="currentColor" strokeWidth="2"/>
+                <circle cx="15" cy="7" r="3" stroke="currentColor" strokeWidth="2"/>
+                <path d="M3 19c0-3.314 2.686-6 6-6h6c3.314 0 6 2.686 6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+              Shared
+            </span>
+          )}
         </div>
 
         {/* Driver card */}

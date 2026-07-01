@@ -140,7 +140,7 @@ export default function AdminPage() {
   return (
     <div className="flex flex-col min-h-screen bg-[#F4F6F9]">
       <Header />
-      <main className="flex-1 p-8 max-w-[1280px] mx-auto w-full">
+      <main className="flex-1 p-4 md:p-8 max-w-[1280px] mx-auto w-full">
 
         {/* Page title */}
         <div className="mb-7">
@@ -149,7 +149,7 @@ export default function AdminPage() {
         </div>
 
         {/* Stat cards */}
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <StatCard
             label="Active rides"
             value={String(activeRides.length)}
@@ -177,7 +177,7 @@ export default function AdminPage() {
         </div>
 
         {/* Main content */}
-        <div className="mt-8 grid grid-cols-[1fr_320px] gap-6 items-start">
+        <div className="mt-8 grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 items-start">
 
           {/* Active rides */}
           <section>
@@ -236,8 +236,8 @@ export default function AdminPage() {
               Completed today
               <span className="ml-2 text-[12px] font-semibold text-[#64748B]">({completedToday.length})</span>
             </h2>
-            <div className="bg-white border border-[#E6EBF1] rounded-[16px] overflow-hidden">
-              <table className="w-full text-[13.5px]">
+            <div className="bg-white border border-[#E6EBF1] rounded-[16px] overflow-hidden overflow-x-auto">
+              <table className="w-full text-[13.5px] min-w-[560px]">
                 <thead>
                   <tr className="border-b border-[#EEF2F7] text-[11px] font-bold text-[#94A3B8] uppercase tracking-[0.5px]">
                     <th className="text-left px-5 py-3">Route</th>

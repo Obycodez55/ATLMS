@@ -48,29 +48,29 @@ export default function Header() {
   const tabs = userDoc ? (ROLE_TABS[userDoc.role] ?? []) : [];
 
   return (
-    <header className="relative flex-none h-16 bg-white border-b border-[#E6EBF1] flex items-center px-6 gap-5 z-20 shadow-[0_1px_0_rgba(16,40,70,0.02)]">
+    <header className="relative flex-none h-14 md:h-16 bg-white border-b border-[#E6EBF1] flex items-center px-4 md:px-6 gap-3 md:gap-5 z-20 shadow-[0_1px_0_rgba(16,40,70,0.02)]">
       {/* Role accent bar */}
       <div className="absolute top-0 left-0 right-0 h-[3px]" style={{ background: roleColor }} />
 
       {/* Logo */}
-      <Link href={userDoc ? `/${userDoc.role}` : "/"} className="flex items-center gap-2.5 no-underline">
-        <div className="w-9 h-9 rounded-[10px] bg-[#1F4E79] flex items-center justify-center flex-shrink-0">
-          <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
+      <Link href={userDoc ? `/${userDoc.role}` : "/"} className="flex items-center gap-2 md:gap-2.5 no-underline">
+        <div className="w-8 h-8 md:w-9 md:h-9 rounded-[9px] md:rounded-[10px] bg-[#1F4E79] flex items-center justify-center flex-shrink-0">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
             <path d="M12 2C8 2 5 5 5 9c0 5 7 13 7 13s7-8 7-13c0-4-3-7-7-7z" fill="#fff" />
             <circle cx="12" cy="9" r="2.6" fill="#1F4E79" />
           </svg>
         </div>
         <div>
-          <div className="text-[17px] font-extrabold tracking-[0.4px] text-[#16263B] leading-none">ALTMS</div>
-          <div className="text-[10.5px] text-[#94A3B8] mt-0.5">University of Ibadan</div>
+          <div className="text-[15px] md:text-[17px] font-extrabold tracking-[0.4px] text-[#16263B] leading-none">ALTMS</div>
+          <div className="hidden md:block text-[10.5px] text-[#94A3B8] mt-0.5">University of Ibadan</div>
         </div>
       </Link>
 
       <div className="flex-1" />
 
-      {/* Role-specific tabs */}
+      {/* Role tabs — hidden on mobile */}
       {tabs.length > 0 && (
-        <nav className="flex bg-[#EEF2F7] rounded-[11px] p-1 gap-0.5">
+        <nav className="hidden md:flex bg-[#EEF2F7] rounded-[11px] p-1 gap-0.5">
           {tabs.map((tab) => {
             const isActive = tab.href === "/passenger"
               ? pathname === "/passenger"
@@ -94,13 +94,13 @@ export default function Header() {
         </nav>
       )}
 
-      {/* Divider */}
-      {userDoc && <div className="w-px h-7 bg-[#E6EBF1]" />}
+      {/* Divider — hidden on mobile */}
+      {userDoc && <div className="hidden md:block w-px h-7 bg-[#E6EBF1]" />}
 
-      {/* User */}
+      {/* User — name hidden on mobile, avatar always shown */}
       {userDoc && (
-        <div className="flex items-center gap-2.5">
-          <div className="text-right">
+        <div className="flex items-center gap-2 md:gap-2.5">
+          <div className="hidden md:block text-right">
             <div className="text-[13.5px] font-semibold text-[#16263B] leading-tight">{userDoc.fullName}</div>
             <div className="text-[11px] font-semibold capitalize" style={{ color: roleColor }}>
               {userDoc.role}
@@ -109,7 +109,7 @@ export default function Header() {
           <button
             onClick={handleSignOut}
             title="Sign out"
-            className="w-9 h-9 rounded-full text-white text-[13px] font-bold border-none cursor-pointer flex items-center justify-center"
+            className="w-8 h-8 md:w-9 md:h-9 rounded-full text-white text-[12px] md:text-[13px] font-bold border-none cursor-pointer flex items-center justify-center"
             style={{ background: roleColor }}
           >
             {initials}

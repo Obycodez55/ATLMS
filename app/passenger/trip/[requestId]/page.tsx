@@ -89,7 +89,7 @@ export default function PassengerTripPage() {
   return (
     <div className="flex flex-col h-screen bg-[#F4F6F9]">
       <Header />
-      <main className="flex-1 flex items-center justify-center p-10">
+      <main className="flex-1 flex items-center justify-center p-4 md:p-10">
 
         {/* ── Payment confirmation ── */}
         {stage === "complete" && (

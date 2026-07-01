@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { useJsApiLoader } from "@react-google-maps/api";
 import { getDistanceFare, getDistanceSharedFare, getFareFromMeters, getSharedFareFromMeters, haversineMeters } from "@/lib/locations";
 import FareMatrixModal from "@/app/components/ui/FareMatrixModal";
+import BottomSheet from "@/app/components/ui/BottomSheet";
 import { RideRequest, PickedLocation } from "@/lib/types";
 
 const LIBRARIES: ("marker" | "places")[] = ["marker", "places"];
@@ -249,10 +250,12 @@ export default function PassengerPage() {
 
   if (activeRequest) {
     return (
-      <div className="flex flex-col h-screen overflow-hidden bg-[#F4F6F9]">
+      <div className="flex flex-col h-[100dvh] overflow-hidden bg-[#F4F6F9]">
         <Header />
         <main className="flex flex-1 min-h-0">
-          <PassengerTripPanel request={activeRequest} driverLocation={driverLocation} onCancel={handleCancel} onExpire={handleExpire} router={router} />
+          <BottomSheet peekHeight={200} defaultExpanded={activeRequest.status === "accepted"}>
+            <PassengerTripPanel request={activeRequest} driverLocation={driverLocation} onCancel={handleCancel} onExpire={handleExpire} router={router} />
+          </BottomSheet>
           <div className="flex-1 relative min-w-0">
             <CampusMap
               pickup={activeRequest.pickupLocation}
@@ -267,11 +270,11 @@ export default function PassengerPage() {
   }
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-[#F4F6F9]">
+    <div className="flex flex-col h-[100dvh] overflow-hidden bg-[#F4F6F9]">
       <Header />
       <main className="flex flex-1 min-h-0">
-        {/* Left panel */}
-        <section className="w-[412px] flex-none bg-white border-r border-[#E6EBF1] flex flex-col overflow-y-auto">
+        {/* Panel — sidebar on desktop, bottom sheet on mobile */}
+        <BottomSheet peekHeight={240} defaultExpanded={false}>
           <div className="p-7">
             <div className="flex items-start justify-between gap-2">
               <h1 className="text-[22px] font-bold text-[#16263B]">Where are you going?</h1>
@@ -365,7 +368,7 @@ export default function PassengerPage() {
               </Button>
             )}
           </div>
-        </section>
+        </BottomSheet>
 
         {/* Map */}
         <div className="flex-1 relative min-w-0">
@@ -376,15 +379,15 @@ export default function PassengerPage() {
             style={{ position: "absolute", inset: 0 }}
           />
           {!pickup && (
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 pointer-events-none">
-              <div className="bg-white/90 backdrop-blur-sm border border-[#E6EBF1] rounded-full px-4 py-2 text-[12.5px] font-semibold text-[#64748B] shadow-md">
+            <div className="absolute bottom-[260px] md:bottom-4 left-1/2 -translate-x-1/2 pointer-events-none">
+              <div className="bg-white/90 backdrop-blur-sm border border-[#E6EBF1] rounded-full px-4 py-2 text-[12.5px] font-semibold text-[#64748B] shadow-md whitespace-nowrap">
                 Tap map to pin pickup location
               </div>
             </div>
           )}
           {pickup && !dest && (
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 pointer-events-none">
-              <div className="bg-white/90 backdrop-blur-sm border border-[#E6EBF1] rounded-full px-4 py-2 text-[12.5px] font-semibold text-[#64748B] shadow-md">
+            <div className="absolute bottom-[260px] md:bottom-4 left-1/2 -translate-x-1/2 pointer-events-none">
+              <div className="bg-white/90 backdrop-blur-sm border border-[#E6EBF1] rounded-full px-4 py-2 text-[12.5px] font-semibold text-[#64748B] shadow-md whitespace-nowrap">
                 Tap map to pin destination
               </div>
             </div>

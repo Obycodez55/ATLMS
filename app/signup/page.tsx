@@ -124,7 +124,7 @@ function SignupForm() {
       </div>
 
       {/* ── Right panel: signup form ── */}
-      <div className="flex flex-1 items-center justify-center bg-[#F4F6F9] p-10 overflow-y-auto">
+      <div className="flex flex-1 items-center justify-center bg-[#F4F6F9] p-5 md:p-10 overflow-y-auto">
         <div className="w-full max-w-[400px] py-6">
 
           {/* Portal badge + back */}

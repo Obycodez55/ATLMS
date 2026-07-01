@@ -10,6 +10,7 @@ import Header from "@/app/components/ui/Header";
 import CampusMap from "@/app/components/map/CampusMap";
 import RouteCard from "@/app/components/ui/RouteCard";
 import { Button } from "@/components/ui/button";
+import BottomSheet from "@/app/components/ui/BottomSheet";
 import { RideRequest } from "@/lib/types";
 
 export default function DriverPage() {
@@ -292,11 +293,13 @@ export default function DriverPage() {
     : null;
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-[#F4F6F9]">
+    <div className="flex flex-col h-[100dvh] overflow-hidden bg-[#F4F6F9]">
       <Header />
       <main className="flex flex-1 min-h-0">
-        {/* Left panel */}
-        <section className="w-[412px] flex-none bg-white border-r border-[#E6EBF1] flex flex-col overflow-y-auto">
+        <BottomSheet
+          peekHeight={200}
+          defaultExpanded={!!incomingRequest || !!activeRequest}
+        >
 
           {/* ── No active request: home + toggle ── */}
           {!activeRequest && !incomingRequest && (
@@ -385,7 +388,7 @@ export default function DriverPage() {
               onComplete={handleCompleteTrip}
             />
           )}
-        </section>
+        </BottomSheet>
 
         {/* Map */}
         <div className="flex-1 relative min-w-0">

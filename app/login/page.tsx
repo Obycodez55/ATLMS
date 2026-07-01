@@ -130,7 +130,7 @@ function LoginForm() {
       </div>
 
       {/* ── Right panel: login form ── */}
-      <div className="flex flex-1 items-center justify-center bg-[#F4F6F9] p-10">
+      <div className="flex flex-1 items-center justify-center bg-[#F4F6F9] p-5 md:p-10">
         <div className="w-full max-w-[400px]">
 
           {/* Portal badge + back link */}

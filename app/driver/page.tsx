@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { doc, updateDoc, collection, query, where, onSnapshot, getDocs, limit } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -26,6 +26,9 @@ export default function DriverPage() {
 
   // Active request this driver is handling
   const [activeRequest, setActiveRequest] = useState<RideRequest | null>(null);
+
+  // Ref tracking the last incoming request id we toasted for — avoids setState-during-render
+  const lastIncomingId = useRef<string | null>(null);
 
   // Today's stats (simple counts from Firestore)
   const [todayStats, setTodayStats] = useState({ trips: 0, earnings: 0 });
@@ -73,11 +76,13 @@ export default function DriverPage() {
       if (!snap.empty) {
         const d = snap.docs[0];
         const req = { id: d.id, ...d.data() } as RideRequest;
-        setIncomingRequest((prev) => {
-          if (!prev || prev.id !== req.id) showToast("New ride request!", "success");
-          return req;
-        });
+        if (lastIncomingId.current !== req.id) {
+          lastIncomingId.current = req.id;
+          showToast("New ride request!", "success");
+        }
+        setIncomingRequest(req);
       } else {
+        lastIncomingId.current = null;
         setIncomingRequest(null);
       }
     });
@@ -97,8 +102,14 @@ export default function DriverPage() {
         where("status", "==", "completed")
       )
     ).then((snap) => {
-      const trips = snap.size;
-      const earnings = snap.docs.reduce((sum, d) => sum + (d.data().fare ?? 0), 0);
+      const todayDocs = snap.docs.filter((d) => {
+        const completedAt = d.data().completedAt;
+        if (!completedAt) return false;
+        const date = completedAt.toDate ? completedAt.toDate() : new Date(completedAt);
+        return date >= today;
+      });
+      const trips = todayDocs.length;
+      const earnings = todayDocs.reduce((sum, d) => sum + (d.data().fare ?? 0), 0);
       setTodayStats({ trips, earnings });
     });
   }, [user]);

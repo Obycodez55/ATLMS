@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { collection, addDoc, serverTimestamp, query, where, onSnapshot, doc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -25,6 +25,7 @@ export default function PassengerPage() {
 
   // Active ride request for this passenger
   const [activeRequest, setActiveRequest] = useState<RideRequest | null>(null);
+  const prevStatusRef = useRef<string | null>(null);
 
   // Redirect if not authenticated or wrong role
   useEffect(() => {
@@ -41,15 +42,17 @@ export default function PassengerPage() {
     );
     const unsub = onSnapshot(q, (snap) => {
       if (snap.empty) {
+        prevStatusRef.current = null;
         setActiveRequest(null);
       } else {
-        const doc = snap.docs[0];
-        const prev = activeRequest;
-        const next = { id: doc.id, ...doc.data() } as RideRequest;
+        const reqDoc = snap.docs[0];
+        const next = { id: reqDoc.id, ...reqDoc.data() } as RideRequest;
+        const prevStatus = prevStatusRef.current;
+        prevStatusRef.current = next.status;
         setActiveRequest(next);
 
         // Toast on status changes
-        if (prev && prev.status !== next.status) {
+        if (prevStatus && prevStatus !== next.status) {
           if (next.status === "accepted") showToast("Driver accepted your request!", "success");
           if (next.status === "in_progress") showToast("Your trip has started!", "success");
         }

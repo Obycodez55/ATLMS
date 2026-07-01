@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useCallback, useState } from "react";
-import { GoogleMap, useJsApiLoader, Polyline, Polygon } from "@react-google-maps/api";
+import { GoogleMap, useJsApiLoader, Polyline, Polygon, DirectionsRenderer } from "@react-google-maps/api";
 import { UI_CAMPUS_CENTER, UI_CAMPUS_ZOOM, CAMPUS_BOUNDARY } from "@/lib/locations";
 import { PickedLocation } from "@/lib/types";
 
@@ -69,6 +69,7 @@ export default function CampusMap({ pickup, destination, driverLocation, onMapCl
   });
 
   const [mapInstance, setMapInstance] = useState<google.maps.Map | null>(null);
+  const [directions, setDirections] = useState<google.maps.DirectionsResult | null>(null);
   const pickupMarkerRef = useRef<google.maps.marker.AdvancedMarkerElement | null>(null);
   const destMarkerRef = useRef<google.maps.marker.AdvancedMarkerElement | null>(null);
   const driverMarkerRef = useRef<google.maps.marker.AdvancedMarkerElement | null>(null);
@@ -155,6 +156,25 @@ export default function CampusMap({ pickup, destination, driverLocation, onMapCl
     }
   }, [isLoaded, driverLocation, mapInstance]);
 
+  // Fetch directions when pickup + destination are set
+  useEffect(() => {
+    if (!isLoaded || !pickup || !destination) {
+      setDirections(null);
+      return;
+    }
+    const svc = new google.maps.DirectionsService();
+    svc.route(
+      {
+        origin: { lat: pickup.lat, lng: pickup.lng },
+        destination: { lat: destination.lat, lng: destination.lng },
+        travelMode: google.maps.TravelMode.DRIVING,
+      },
+      (result, status) => {
+        setDirections(status === google.maps.DirectionsStatus.OK && result ? result : null);
+      }
+    );
+  }, [isLoaded, pickup, destination]);
+
   const pathPoints =
     pickup && destination
       ? [{ lat: pickup.lat, lng: pickup.lng }, { lat: destination.lat, lng: destination.lng }]
@@ -179,12 +199,20 @@ export default function CampusMap({ pickup, destination, driverLocation, onMapCl
     >
       <Polygon paths={CAMPUS_BOUNDARY} options={BOUNDARY_OPTIONS} />
 
-      {pathPoints.length === 2 && (
+      {directions ? (
+        <DirectionsRenderer
+          directions={directions}
+          options={{
+            suppressMarkers: true,
+            polylineOptions: { strokeColor: "#1F4E79", strokeWeight: 4, strokeOpacity: 0.75 },
+          }}
+        />
+      ) : pathPoints.length === 2 ? (
         <Polyline
           path={pathPoints}
-          options={{ strokeColor: "#1F4E79", strokeWeight: 3, strokeOpacity: 0.6 }}
+          options={{ strokeColor: "#1F4E79", strokeWeight: 3, strokeOpacity: 0.5 }}
         />
-      )}
+      ) : null}
     </GoogleMap>
   );
 }

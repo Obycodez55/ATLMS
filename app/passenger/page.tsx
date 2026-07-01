@@ -11,9 +11,12 @@ import CampusMap from "@/app/components/map/CampusMap";
 import LocationPicker from "@/app/components/ui/LocationPicker";
 import RouteCard from "@/app/components/ui/RouteCard";
 import { Button } from "@/components/ui/button";
-import { getDistanceFare, getDistanceSharedFare, haversineMeters } from "@/lib/locations";
+import { useJsApiLoader } from "@react-google-maps/api";
+import { getDistanceFare, getDistanceSharedFare, getFareFromMeters, getSharedFareFromMeters, haversineMeters } from "@/lib/locations";
 import FareMatrixModal from "@/app/components/ui/FareMatrixModal";
 import { RideRequest, PickedLocation } from "@/lib/types";
+
+const LIBRARIES: ("marker" | "places")[] = ["marker", "places"];
 
 export default function PassengerPage() {
   const { user, userDoc, loading } = useAuth();
@@ -30,8 +33,16 @@ export default function PassengerPage() {
   const prevRequestIdRef = useRef<string | null>(null);
 
   const [driverLocation, setDriverLocation] = useState<{ lat: number; lng: number } | null>(null);
-
   const hasAlertedArrivalRef = useRef(false);
+
+  const [fare, setFare] = useState<number | null>(null);
+  const [sharedFare, setSharedFare] = useState<number | null>(null);
+  const [fareLoading, setFareLoading] = useState(false);
+
+  const { isLoaded: mapsLoaded } = useJsApiLoader({
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "",
+    libraries: LIBRARIES,
+  });
 
   useEffect(() => {
     if (loading) return;
@@ -110,8 +121,36 @@ export default function PassengerPage() {
     }
   }, [driverLocation, activeRequest?.status, activeRequest?.pickupLocation, showToast]);
 
-  const fare = pickup && dest ? getDistanceFare(pickup.lat, pickup.lng, dest.lat, dest.lng) : null;
-  const sharedFare = pickup && dest ? getDistanceSharedFare(pickup.lat, pickup.lng, dest.lat, dest.lng) : null;
+  // Distance Matrix fare — async, with haversine fallback
+  useEffect(() => {
+    if (!pickup || !dest) {
+      setFare(null);
+      setSharedFare(null);
+      setFareLoading(false);
+      return;
+    }
+    if (!mapsLoaded) return;
+    setFareLoading(true);
+    const svc = new google.maps.DistanceMatrixService();
+    svc.getDistanceMatrix(
+      {
+        origins: [{ lat: pickup.lat, lng: pickup.lng }],
+        destinations: [{ lat: dest.lat, lng: dest.lng }],
+        travelMode: google.maps.TravelMode.DRIVING,
+      },
+      (result, status) => {
+        const el = result?.rows[0]?.elements[0];
+        if (status === google.maps.DistanceMatrixStatus.OK && el?.status === "OK") {
+          setFare(getFareFromMeters(el.distance.value));
+          setSharedFare(getSharedFareFromMeters(el.distance.value));
+        } else {
+          setFare(getDistanceFare(pickup.lat, pickup.lng, dest.lat, dest.lng));
+          setSharedFare(getDistanceSharedFare(pickup.lat, pickup.lng, dest.lat, dest.lng));
+        }
+        setFareLoading(false);
+      }
+    );
+  }, [pickup, dest, mapsLoaded]);
 
   function handleMapClick(loc: PickedLocation) {
     if (!pickup) setPickup(loc);
@@ -263,34 +302,43 @@ export default function PassengerPage() {
             </div>
 
             {/* Fare card */}
-            {fare !== null && pickup && dest && (
+            {pickup && dest && (
               <div className="mt-6 bg-[#F7F9FC] border border-[#E6EBF1] rounded-[14px] p-[18px_20px] animate-[altms-fade_.3s_ease]">
-                <div className="flex items-end justify-between gap-4">
-                  <div>
-                    <div className="text-[11px] font-bold tracking-[0.6px] text-[#94A3B8] uppercase">Solo fare</div>
-                    <div className="text-[34px] font-extrabold text-[#1F4E79] mt-0.5 tabular-nums">₦{fare.toLocaleString()}</div>
+                {fareLoading ? (
+                  <div className="flex items-center gap-2.5 py-1">
+                    <div className="w-4 h-4 border-2 border-[#D1D9E2] border-t-[#1F4E79] rounded-full animate-spin flex-shrink-0" />
+                    <span className="text-[13.5px] text-[#64748B] font-medium">Calculating road distance…</span>
                   </div>
-                  {sharedFare !== null && (
-                    <div className="text-right">
-                      <div className="text-[11px] font-bold tracking-[0.6px] text-[#94A3B8] uppercase">Shared fare</div>
-                      <div className="text-[22px] font-bold text-[#0A7D70] mt-0.5 tabular-nums">₦{sharedFare.toLocaleString()}</div>
-                      <div className="text-[11px] text-[#64748B]">per person</div>
+                ) : fare !== null ? (
+                  <>
+                    <div className="flex items-end justify-between gap-4">
+                      <div>
+                        <div className="text-[11px] font-bold tracking-[0.6px] text-[#94A3B8] uppercase">Solo fare</div>
+                        <div className="text-[34px] font-extrabold text-[#1F4E79] mt-0.5 tabular-nums">₦{fare.toLocaleString()}</div>
+                      </div>
+                      {sharedFare !== null && (
+                        <div className="text-right">
+                          <div className="text-[11px] font-bold tracking-[0.6px] text-[#94A3B8] uppercase">Shared fare</div>
+                          <div className="text-[22px] font-bold text-[#0A7D70] mt-0.5 tabular-nums">₦{sharedFare.toLocaleString()}</div>
+                          <div className="text-[11px] text-[#64748B]">per person</div>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-                <div className="mt-3.5 pt-3.5 border-t border-dashed border-[#DCE3EC] flex items-center gap-2 text-[12.5px] text-[#0A7D70] font-semibold">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
-                    <path d="M9 12l2 2 4-4" stroke="#0A7D70" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    <circle cx="12" cy="12" r="9" stroke="#0A7D70" strokeWidth="2" />
-                  </svg>
-                  No surge pricing · Pay cash or transfer
-                </div>
+                    <div className="mt-3.5 pt-3.5 border-t border-dashed border-[#DCE3EC] flex items-center gap-2 text-[12.5px] text-[#0A7D70] font-semibold">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+                        <path d="M9 12l2 2 4-4" stroke="#0A7D70" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        <circle cx="12" cy="12" r="9" stroke="#0A7D70" strokeWidth="2" />
+                      </svg>
+                      No surge pricing · Pay cash or transfer
+                    </div>
+                  </>
+                ) : null}
               </div>
             )}
 
             <Button
               onClick={handleRequestRide}
-              disabled={!pickup || !dest || fare === null || requesting}
+              disabled={!pickup || !dest || fare === null || fareLoading || requesting}
               className="mt-6 w-full h-[50px] bg-[#1F4E79] hover:bg-[#1a4369] text-white text-[15px] font-semibold rounded-[11px] disabled:opacity-40"
             >
               {requesting ? (
@@ -298,10 +346,10 @@ export default function PassengerPage() {
                   <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   Requesting…
                 </span>
-              ) : fare !== null ? `Request ride — ₦${fare.toLocaleString()}` : "Request ride"}
+              ) : fareLoading ? "Calculating…" : fare !== null ? `Request ride — ₦${fare.toLocaleString()}` : "Request ride"}
             </Button>
 
-            {pickup && dest && sharedFare !== null && (
+            {pickup && dest && sharedFare !== null && !fareLoading && (
               <Button
                 onClick={handleRequestSharedRide}
                 disabled={requesting}

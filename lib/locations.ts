@@ -84,3 +84,13 @@ export function getDistanceSharedFare(lat1: number, lng1: number, lat2: number, 
   const solo = getDistanceFare(lat1, lng1, lat2, lng2);
   return Math.max(70, Math.round((solo * 0.7) / 10) * 10);
 }
+
+// Fare from a road distance in metres (from Distance Matrix API)
+export function getFareFromMeters(distMeters: number): number {
+  const distKm = distMeters / 1000;
+  return Math.max(100, Math.ceil(distKm * 150 / 50) * 50);
+}
+
+export function getSharedFareFromMeters(distMeters: number): number {
+  return Math.max(70, Math.round(getFareFromMeters(distMeters) * 0.7 / 10) * 10);
+}

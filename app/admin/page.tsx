@@ -1,10 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { useAuth } from "@/app/contexts/AuthContext";
 import Header from "@/app/components/ui/Header";
 import { RideRequest, UserDoc } from "@/lib/types";
 
@@ -20,19 +18,82 @@ const STATUS_COLORS: Record<string, { bg: string; text: string; dot: string }> =
   in_progress: { bg: "#E6F6F4", text: "#0A7D70", dot: "#00A896" },
 };
 
+const ADMIN_EMAIL = "admin@email.com";
+const ADMIN_PASSWORD = "password";
+
 export default function AdminPage() {
-  const { user, userDoc, loading } = useAuth();
-  const router = useRouter();
+  const [authed, setAuthed] = useState(false);
+  const [emailInput, setEmailInput] = useState("");
+  const [passwordInput, setPasswordInput] = useState("");
+  const [loginError, setLoginError] = useState("");
 
   const [activeRides, setActiveRides] = useState<RideRequest[]>([]);
   const [completedToday, setCompletedToday] = useState<RideRequest[]>([]);
   const [drivers, setDrivers] = useState<UserDoc[]>([]);
 
-  useEffect(() => {
-    if (loading) return;
-    if (!user) { router.replace("/login"); return; }
-    if (userDoc && userDoc.role !== "admin") router.replace(`/${userDoc.role}`);
-  }, [loading, user, userDoc, router]);
+  function handleAdminLogin(e: React.FormEvent) {
+    e.preventDefault();
+    if (emailInput === ADMIN_EMAIL && passwordInput === ADMIN_PASSWORD) {
+      setAuthed(true);
+    } else {
+      setLoginError("Incorrect email or password.");
+    }
+  }
+
+  if (!authed) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-[#F4F6F9]">
+        <div className="w-[380px] bg-white border border-[#E6EBF1] rounded-[18px] shadow-[0_18px_50px_-22px_rgba(16,40,70,0.25)] p-8">
+          <div className="flex items-center gap-3 mb-7">
+            <div className="w-9 h-9 rounded-[9px] bg-[#1F4E79] flex items-center justify-center flex-shrink-0">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <rect x="3" y="11" width="18" height="11" rx="2" stroke="#fff" strokeWidth="2" />
+                <path d="M7 11V7a5 5 0 0110 0v4" stroke="#fff" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+            </div>
+            <div>
+              <div className="text-[17px] font-bold text-[#16263B]">Admin Portal</div>
+              <div className="text-[12px] text-[#94A3B8]">ALTMS · University of Ibadan</div>
+            </div>
+          </div>
+
+          <form onSubmit={handleAdminLogin} className="flex flex-col gap-3.5">
+            <div>
+              <label className="text-[12px] font-semibold text-[#475569] mb-1.5 block">Email</label>
+              <input
+                type="email"
+                value={emailInput}
+                onChange={(e) => { setEmailInput(e.target.value); setLoginError(""); }}
+                placeholder="admin@email.com"
+                required
+                className="w-full px-3.5 py-2.5 border-[1.5px] border-[#DCE3EC] rounded-[10px] text-[14px] text-[#16263B] font-medium outline-none focus:border-[#1F4E79]"
+              />
+            </div>
+            <div>
+              <label className="text-[12px] font-semibold text-[#475569] mb-1.5 block">Password</label>
+              <input
+                type="password"
+                value={passwordInput}
+                onChange={(e) => { setPasswordInput(e.target.value); setLoginError(""); }}
+                placeholder="••••••••"
+                required
+                className="w-full px-3.5 py-2.5 border-[1.5px] border-[#DCE3EC] rounded-[10px] text-[14px] text-[#16263B] font-medium outline-none focus:border-[#1F4E79]"
+              />
+            </div>
+            {loginError && (
+              <p className="text-[12.5px] text-red-500 font-medium">{loginError}</p>
+            )}
+            <button
+              type="submit"
+              className="mt-1 w-full h-[46px] bg-[#1F4E79] hover:bg-[#1a4369] text-white font-semibold rounded-[10px] text-[15px] transition-colors cursor-pointer border-none"
+            >
+              Sign in
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
 
   // Live active rides
   useEffect(() => {
@@ -72,8 +133,6 @@ export default function AdminPage() {
     );
     return unsub;
   }, []);
-
-  if (loading || !userDoc) return <LoadingScreen />;
 
   const onlineDrivers = drivers.filter((d) => d.isOnline);
   const revenueToday = completedToday.reduce((sum, r) => sum + (r.fare ?? 0), 0);
